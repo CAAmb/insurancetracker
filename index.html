@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0c1f36">
+<title>Insurance Tracker — Coastal Advice Group</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%2316b377' d='M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5z'/></svg>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/3.28.1/js/msal-browser.min.js"></script>
+<script>if (typeof msal === "undefined") { document.write('<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"><\/script>'); }</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
+:root{
+  --navy-950:#081526; --navy-900:#0c1f36; --navy-800:#112a47; --navy-700:#1a3a5f;
+  --green:#16b377; --green-600:#0f9d66; --green-50:#e7f7ef;
+  --bg:#f3f6fa; --card:#ffffff; --border:#e3e9f1;
+  --text:#1c2b3a; --muted:#64748b;
+  --red:#dc2626; --radius:10px;
+  --shadow:0 1px 3px rgba(12,31,54,.08), 0 4px 16px rgba(12,31,54,.06);
+}
+html,body{height:100%}
+body{font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14.5px;line-height:1.45}
+body.modal-open{overflow:hidden}
+button{font-family:inherit}
+
+/* ---------- Sign-in ---------- */
+#signin-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy-950),var(--navy-700));display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.signin-card{background:#fff;border-radius:16px;padding:42px 38px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.signin-logo{width:64px;height:64px;border-radius:16px;background:var(--green-50);color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.signin-card h1{font-size:22px;color:var(--navy-900);margin-bottom:4px}
+.signin-card .signin-sub{color:var(--muted);margin-bottom:24px;font-size:14px}
+.signin-note{margin-top:18px;font-size:12.5px;color:var(--muted)}
+
+/* ---------- Loading overlay ---------- */
+#overlay{position:fixed;inset:0;background:rgba(8,21,38,.88);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;text-align:center;padding:20px}
+#overlay-msg{font-size:15px;max-width:420px}
+.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:var(--green);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Layout ---------- */
+#app{display:flex;min-height:100vh}
+#sidebar{width:240px;background:var(--navy-900);color:#cdd9e8;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:47}
+#main{flex:1;margin-left:240px;padding:28px 32px;min-width:0}
+.brand{display:flex;gap:12px;align-items:center;padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand-logo{width:38px;height:38px;border-radius:10px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.brand-name{font-weight:600;color:#fff;font-size:15px;line-height:1.2}
+.brand-sub{font-size:11.5px;color:#8aa1ba;margin-top:2px}
+#sidebar nav{padding:14px 10px;flex:1;display:flex;flex-direction:column;gap:4px}
+.nav-link{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;background:none;border:none;color:#b7c7d8;font-size:14px;border-radius:8px;cursor:pointer;text-align:left}
+.nav-link:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-link.active{background:var(--green);color:#fff;font-weight:600}
+.nav-link svg{flex:none}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:13px}
+#user-name{color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#user-email{color:#8aa1ba;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#signout-btn{margin-top:10px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.25);color:#cdd9e8;border-radius:8px;padding:7px 10px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+#signout-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+
+/* ---------- Topbar (mobile) ---------- */
+#topbar{display:none}
+#menu-btn{background:none;border:none;color:#fff;cursor:pointer;padding:6px;display:inline-flex}
+.topbar-title{font-weight:600}
+#backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:46}
+
+/* ---------- Page header ---------- */
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.page-header h1{font-size:22px;color:var(--navy-900)}
+.page-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- Buttons ---------- */
+.btn{background:var(--green);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .15s}
+.btn:hover{background:var(--green-600)}
+.btn:disabled{opacity:.6;cursor:default}
+.btn-secondary{background:#fff;color:var(--navy-800);border:1px solid var(--border)}
+.btn-secondary:hover{background:#f1f5f9}
+.btn-danger{background:var(--red)}
+.btn-danger:hover{background:#b91c1c}
+.btn-ghost{background:#fff;color:var(--navy-700);border:1px solid var(--border)}
+.btn-ghost:hover{background:#f1f5f9}
+.btn-sm{padding:6px 11px;font-size:12.5px}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:6px;display:inline-flex;align-items:center}
+.icon-btn:hover{background:#eef2f7;color:var(--navy-800)}
+.icon-btn.danger:hover{background:#fee2e2;color:var(--red)}
+
+/* ---------- Dashboard ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:22px}
+.metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--green)}
+.metric-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.metric-value{font-size:24px;font-weight:700;color:var(--navy-900)}
+.metric-money{font-size:19px}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.chart-card h3{font-size:14.5px;color:var(--navy-800);margin-bottom:12px}
+.chart-card.wide{grid-column:1/-1}
+.chart-box{position:relative;height:260px}
+.no-data{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13.5px}
+
+/* ---------- Toolbar / filters ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
+.t-field{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);font-weight:600}
+.t-field .input{min-width:130px}
+.t-field.grow{flex:1;min-width:200px}
+.toolbar .btn{margin-bottom:1px}
+.count-label{margin-left:auto;font-size:12.5px;color:var(--muted);align-self:center;white-space:nowrap}
+
+/* ---------- Inputs ---------- */
+.input{border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);width:100%}
+.input:focus{outline:2px solid rgba(22,179,119,.3);border-color:var(--green)}
+textarea.input{resize:vertical}
+.input-sm{padding:5px 8px;font-size:13px}
+
+/* ---------- Tables ---------- */
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:1080px}
+table.table-compact{min-width:560px}
+thead th{background:var(--navy-900);color:#cdd9e8;padding:10px 12px;text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+td{padding:10px 12px;border-top:1px solid var(--border);vertical-align:middle}
+tbody tr:hover{background:#f6f9fc}
+.td-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th.td-num{text-align:right}
+.td-title{font-weight:600;color:var(--navy-800)}
+.td-actions{white-space:nowrap;text-align:right}
+th.td-actions{text-align:right}
+.td-empty{text-align:center;color:var(--muted);padding:28px}
+
+/* ---------- Badges ---------- */
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.badge-green{background:#e7f7ef;color:#0f9d66}
+.badge-blue{background:#e5efff;color:#2563eb}
+.badge-amber{background:#fdf1df;color:#b45309}
+.badge-red{background:#fde8e8;color:#dc2626}
+.badge-teal{background:#dff6f3;color:#0d9488}
+.badge-gray{background:#eef1f5;color:#64748b}
+.badge-slate{background:#e2e8f0;color:#334155}
+
+/* ---------- Settings ---------- */
+.settings-grid{display:grid;gap:18px}
+.card-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.card-header h2{font-size:16px;color:var(--navy-900)}
+.card-note{font-size:12.5px;color:var(--muted);margin-top:3px;max-width:640px}
+
+/* ---------- Modals ---------- */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,21,38,.55);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px}
+.modal{background:#fff;border-radius:14px;max-width:680px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.modal-sm{max-width:440px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);flex:none}
+.modal-header h2{font-size:17px;color:var(--navy-900)}
+.modal-form{display:flex;flex-direction:column;min-height:0}
+.modal-body{padding:20px 22px;overflow-y:auto}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border);flex:none}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--navy-700)}
+.span-2{grid-column:1/-1}
+.checkbox-field{flex-direction:row;align-items:center;gap:9px;font-size:13.5px;padding:4px 0}
+.checkbox-field input{width:16px;height:16px;accent-color:var(--green)}
+
+/* ---------- Toasts ---------- */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:120;display:flex;flex-direction:column;gap:10px;max-width:360px}
+.toast{padding:12px 16px;border-radius:10px;color:#fff;font-size:13.5px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:slideIn .25s ease}
+.toast-success{background:#0f9d66}
+.toast-error{background:#dc2626}
+.toast-out{opacity:0;transform:translateY(8px);transition:all .3s}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ---------- Responsive ---------- */
+@media(max-width:900px){
+  #topbar{display:flex;position:fixed;top:0;left:0;right:0;height:56px;background:var(--navy-900);color:#fff;align-items:center;gap:10px;padding:0 14px;z-index:45}
+  #sidebar{transform:translateX(-100%);transition:transform .22s ease;width:250px}
+  #sidebar.open{transform:none}
+  #main{margin-left:0;padding:74px 14px 24px}
+  .charts-grid{grid-template-columns:1fr}
+  table{min-width:860px}
+}
+@media(max-width:640px){
+  .form-grid{grid-template-columns:1fr}
+  .modal-overlay{padding:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- Sign-in screen -->
+<div id="signin-screen" hidden>
+  <div class="signin-card">
+    <div class="signin-logo">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <h1>Insurance Tracker</h1>
+    <p class="signin-sub">Coastal Advice Group</p>
+    <button id="signin-btn" class="btn" style="width:100%;justify-content:center">Sign in with Microsoft</button>
+    <p class="signin-note">Uses your Microsoft 365 account to read and update insurance data in SharePoint.</p>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="overlay" hidden>
+  <div class="spinner" id="overlay-spinner"></div>
+  <div id="overlay-msg">Loading…</div>
+  <button id="overlay-retry" class="btn" hidden>Retry</button>
+</div>
+
+<!-- App shell -->
+<div id="app" hidden>
+  <header id="topbar">
+    <button id="menu-btn" aria-label="Open menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="topbar-title">Insurance Tracker</span>
+  </header>
+  <div id="backdrop" hidden></div>
+
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Insurance Tracker</div>
+        <div class="brand-sub">Coastal Advice Group</div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-link active" data-page="dashboard">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-link" data-page="applications">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Applications
+      </button>
+      <button class="nav-link" data-page="claims">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Claims
+      </button>
+      <button class="nav-link" data-page="settings">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        Settings
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="user-name"></div>
+      <div id="user-email"></div>
+      <button id="signout-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </aside>
+
+  <main id="main">
+
+    <!-- ===== Dashboard ===== -->
+    <section class="page" id="page-dashboard">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" data-refresh>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="cards" id="dash-cards"></div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Applications by Insurer</h3>
+          <div class="chart-box"><canvas id="chartInsurer"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Applications by Adviser</h3>
+          <div class="chart-box"><canvas id="chartAdviser"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card wide">
+          <h3>Received Commission by Month</h3>
+          <div class="chart-box"><canvas id="chartMonth"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Applications by Status</h3>
+          <div class="chart-box"><canvas id="chartStatus"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Claims by Claim Status</h3>
+          <div class="chart-box"><canvas id="chartClaims"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Applications ===== -->
+    <section class="page" id="page-applications" hidden>
+      <div class="page-header">
+        <h1>Applications</h1>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" data-refresh>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+          <button class="btn" id="btn-add-application">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Application
+          </button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label class="t-field grow"><span>Search</span><input id="app-search" class="input" type="search" placeholder="Search applications…"></label>
+        <label class="t-field"><span>Status</span><select id="app-filter-status" class="input"></select></label>
+        <label class="t-field"><span>Adviser</span><select id="app-filter-adviser" class="input"></select></label>
+        <label class="t-field"><span>Insurer</span><select id="app-filter-insurer" class="input"></select></label>
+        <label class="t-field"><span>Insurance Team</span><select id="app-filter-team" class="input"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+        <label class="t-field"><span>Submitted From</span><input id="app-filter-from" type="date" class="input"></label>
+        <label class="t-field"><span>Submitted To</span><input id="app-filter-to" type="date" class="input"></label>
+        <button id="app-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
+        <span class="count-label" id="app-count"></span>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Title</th><th>Client Type</th><th>Submitted</th><th>Completed</th><th>Insurer</th><th>Adviser</th><th>Team</th><th>Status</th>
+              <th class="td-num">Expected Comm.</th><th class="td-num">Received Comm.</th><th>Comm. Paid</th><th class="td-actions">Actions</th>
+            </tr></thead>
+            <tbody id="applications-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Claims ===== -->
+    <section class="page" id="page-claims" hidden>
+      <div class="page-header">
+        <h1>Claims</h1>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" data-refresh>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+          <button class="btn" id="btn-add-claim">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Claim
+          </button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label class="t-field grow"><span>Search</span><input id="claim-search" class="input" type="search" placeholder="Search claims…"></label>
+        <label class="t-field"><span>Claim Status</span><select id="claim-filter-status" class="input"></select></label>
+        <label class="t-field"><span>Adviser</span><select id="claim-filter-adviser" class="input"></select></label>
+        <label class="t-field"><span>Insurer</span><select id="claim-filter-insurer" class="input"></select></label>
+        <label class="t-field"><span>Claim Type</span><select id="claim-filter-type" class="input"></select></label>
+        <button id="claim-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
+        <span class="count-label" id="claim-count"></span>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Title</th><th>Linked Application</th><th>Adviser</th><th>Insurer</th><th>Claim Type</th><th>Claim Status</th><th>Lodged</th>
+              <th class="td-num">Benefit</th><th class="td-num">Monthly Benefit</th><th class="td-num">Total Paid</th><th class="td-actions">Actions</th>
+            </tr></thead>
+            <tbody id="claims-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Settings ===== -->
+    <section class="page" id="page-settings" hidden>
+      <div class="page-header">
+        <h1>Settings</h1>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" data-refresh>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <div class="table-card">
+          <div class="card-header">
+            <div>
+              <h2>App Settings</h2>
+              <p class="card-note">Values stored in the SharePoint Settings list. ExternalAdviserFee is the default Expected Commission for external (non&#8209;team) applications.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table-compact">
+              <thead><tr><th>Title</th><th>Value</th><th>Description</th><th class="td-actions">Actions</th></tr></thead>
+              <tbody id="settings-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="card-header">
+            <div><h2>Advisers</h2></div>
+            <button class="btn btn-sm" id="btn-add-adviser">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Adviser
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="table-compact">
+              <thead><tr><th>Name</th><th>Email</th><th>Active</th><th class="td-actions">Actions</th></tr></thead>
+              <tbody id="advisers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="card-header">
+            <div><h2>Insurers</h2></div>
+            <button class="btn btn-sm" id="btn-add-insurer">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Insurer
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="table-compact">
+              <thead><tr><th>Name</th><th>Active</th><th class="td-actions">Actions</th></tr></thead>
+              <tbody id="insurers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== Application modal ===== -->
+<div class="modal-overlay" id="app-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="app-modal-title">New Application</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="app-form" class="modal-form">
+      <input type="hidden" id="af-id">
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field span-2"><span>Title *</span><input id="af-title" class="input" required maxlength="255"></label>
+          <label class="field"><span>Client Type</span><select id="af-clienttype" class="input"></select></label>
+          <label class="field"><span>Status</span><select id="af-status" class="input"></select></label>
+          <label class="field"><span>Submission Date</span><input type="date" id="af-subdate" class="input"></label>
+          <label class="field"><span>Completion Date</span><input type="date" id="af-compdate" class="input"></label>
+          <label class="field"><span>Insurer</span><select id="af-insurer" class="input"></select></label>
+          <label class="field"><span>Adviser</span><select id="af-adviser" class="input"></select></label>
+          <label class="field checkbox-field span-2"><input type="checkbox" id="af-team"><span>Insurance Team Application</span></label>
+          <label class="field span-2"><span>Implementation Manager</span><input id="af-implmgr" class="input" placeholder="Name or email"></label>
+          <label class="field"><span>Expected Commission (AUD)</span><input type="number" step="any" id="af-expected" class="input"></label>
+          <label class="field"><span>Received Commission (AUD)</span><input type="number" step="any" id="af-received" class="input"></label>
+          <label class="field"><span>Commission Paid Date</span><input type="date" id="af-paiddate" class="input"></label>
+          <div class="field"></div>
+          <label class="field span-2"><span>Commission Notes</span><textarea id="af-commnotes" class="input" rows="2"></textarea></label>
+          <label class="field span-2"><span>Notes</span><textarea id="af-notes" class="input" rows="3"></textarea></label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn">Save Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Claim modal ===== -->
+<div class="modal-overlay" id="claim-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="claim-modal-title">New Claim</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="claim-form" class="modal-form">
+      <input type="hidden" id="cf-id">
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field span-2"><span>Title *</span><input id="cf-title" class="input" required maxlength="255"></label>
+          <label class="field span-2"><span>Linked Application</span><select id="cf-linkedapp" class="input"></select></label>
+          <label class="field"><span>Adviser</span><select id="cf-adviser" class="input"></select></label>
+          <label class="field"><span>Insurer</span><select id="cf-insurer" class="input"></select></label>
+          <label class="field"><span>Claim Type</span><select id="cf-claimtype" class="input"></select></label>
+          <label class="field"><span>Claim Status</span><select id="cf-claimstatus" class="input"></select></label>
+          <label class="field"><span>Lodgement Date</span><input type="date" id="cf-lodgedate" class="input"></label>
+          <label class="field"><span>Decision Date</span><input type="date" id="cf-decisiondate" class="input"></label>
+          <label class="field"><span>Benefit Amount (AUD)</span><input type="number" step="any" id="cf-benefit" class="input"></label>
+          <label class="field"><span>Monthly Benefit Amount (AUD)</span><input type="number" step="any" id="cf-monthlybenefit" class="input"></label>
+          <label class="field"><span>First Payment Date</span><input type="date" id="cf-firstpay" class="input"></label>
+          <label class="field"><span>Last Payment Date</span><input type="date" id="cf-lastpay" class="input"></label>
+          <label class="field"><span>Total Paid (AUD)</span><input type="number" step="any" id="cf-totalpaid" class="input"></label>
+          <div class="field"></div>
+          <label class="field span-2"><span>Notes</span><textarea id="cf-notes" class="input" rows="3"></textarea></label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn">Save Claim</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Adviser modal ===== -->
+<div class="modal-overlay" id="adviser-modal" hidden>
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="adviser-modal-title">New Adviser</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="adviser-form" class="modal-form">
+      <input type="hidden" id="advf-id">
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field span-2"><span>Name *</span><input id="advf-title" class="input" required maxlength="255"></label>
+          <label class="field span-2"><span>Email</span><input id="advf-email" type="email" class="input"></label>
+          <label class="field checkbox-field span-2"><input type="checkbox" id="advf-active" checked><span>Active</span></label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn">Save Adviser</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Insurer modal ===== -->
+<div class="modal-overlay" id="insurer-modal" hidden>
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="insurer-modal-title">New Insurer</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="insurer-form" class="modal-form">
+      <input type="hidden" id="insf-id">
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field span-2"><span>Name *</span><input id="insf-title" class="input" required maxlength="255"></label>
+          <label class="field checkbox-field span-2"><input type="checkbox" id="insf-active" checked><span>Active</span></label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn">Save Insurer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Confirm modal ===== -->
+<div class="modal-overlay" id="confirm-modal" hidden>
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Confirm Delete</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body"><p id="confirm-msg" style="font-size:14px"></p></div>
+    <div class="modal-footer">
+      <button id="confirm-cancel" type="button" class="btn btn-secondary">Cancel</button>
+      <button id="confirm-ok" type="button" class="btn btn-danger">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+"use strict";
+
+/* ================= Config ================= */
+const MSAL_CLIENT_ID = "21c75153-acd5-4ecc-9f8a-d7a2160c249e";
+const TENANT = "coastaladvicegroup";
+const SCOPES = ["https://graph.microsoft.com/Sites.ReadWrite.All", "User.Read"];
+const GRAPH_LISTS_BASE = "https://graph.microsoft.com/v1.0/sites/coastaladvicegroup.sharepoint.com:/sites/PowerApp:/lists/";
+const LISTS = { advisers: "Advisers", insurers: "Insurers", settings: "Settings", applications: "Applications", claims: "Claims" };
+const APP_STATUSES = ["In Progress", "Submitted", "Accepted", "Declined", "On Risk", "Lapsed"];
+const CLAIM_STATUSES = ["Lodged", "Assessing", "Approved", "Declined", "Withdrawn", "Closed"];
+const CLAIM_TYPES = ["Lump Sum", "Monthly Benefit", "Reimbursement", "Other"];
+const CLIENT_TYPES = ["New", "Existing"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const STATUS_BADGE = { "In Progress": "badge-amber", "Submitted": "badge-blue", "Accepted": "badge-green", "Declined": "badge-red", "On Risk": "badge-teal", "Lapsed": "badge-gray" };
+const CLAIM_BADGE = { "Lodged": "badge-blue", "Assessing": "badge-amber", "Approved": "badge-green", "Declined": "badge-red", "Withdrawn": "badge-gray", "Closed": "badge-slate" };
+const STATUS_COLORS = { "In Progress": "#d97706", "Submitted": "#2563eb", "Accepted": "#16b377", "Declined": "#dc2626", "On Risk": "#0d9488", "Lapsed": "#94a3b8" };
+const CLAIM_STATUS_COLORS = { "Lodged": "#2563eb", "Assessing": "#d97706", "Approved": "#16b377", "Declined": "#dc2626", "Withdrawn": "#94a3b8", "Closed": "#475569" };
+const PIE_COLORS = ["#16b377", "#1a3a5f", "#2563eb", "#d97706", "#dc2626", "#0d9488", "#7c3aed", "#64748b", "#0ea5e9", "#a3e635"];
+
+const state = { advisers: [], insurers: [], settings: [], applications: [], claims: [], account: null };
+const charts = {};
+let currentPage = "dashboard";
+let msalApp = null;
+let confirmResolve = null;
+
+/* ================= Utils ================= */
+const $ = (sel, root) => (root || document).querySelector(sel);
+
+function esc(s) {
+  return String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+const audFmt = new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" });
+function fmtAUD(v) {
+  if (v === null || v === undefined || v === "") return "";
+  const n = Number(v);
+  return isNaN(n) ? "" : audFmt.format(n);
+}
+function fmtDate(v) {
+  if (!v) return "";
+  const p = String(v).slice(0, 10).split("-");
+  return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : "";
+}
+function dateInputVal(v) { return v ? String(v).slice(0, 10) : ""; }
+function numOrNull(v) {
+  if (v === "" || v === null || v === undefined) return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+function sumBy(arr, f) { return arr.reduce((t, x) => t + (Number(f(x)) || 0), 0); }
+function sortByTitle(arr) { return arr.slice().sort((a, b) => String(a.Title || "").localeCompare(String(b.Title || ""))); }
+function isActive(x) { return !(x.Active === false || x.Active === 0 || x.Active === "No" || x.Active === "false"); }
+function friendly(err) {
+  const m = err && err.message ? err.message : String(err);
+  if (/Failed to fetch|NetworkError/i.test(m)) return "Network error. Check your connection and try again.";
+  if (/^40[13]/.test(m)) return "You don't have permission to do that in SharePoint.";
+  if (/^404/.test(m)) return "Item or list not found in SharePoint.";
+  return "Something went wrong. " + m;
+}
+
+const ICON_EDIT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+const ICON_TRASH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+
+/* ================= Toasts / overlay / modals ================= */
+function showToast(msg, type) {
+  const el = document.createElement("div");
+  el.className = "toast toast-" + (type || "success");
+  el.textContent = msg;
+  $("#toasts").appendChild(el);
+  setTimeout(() => { el.classList.add("toast-out"); setTimeout(() => el.remove(), 320); }, 4000);
+}
+function showOverlay(msg) {
+  $("#overlay").hidden = false;
+  $("#overlay-msg").textContent = msg;
+  $("#overlay-retry").hidden = true;
+  $("#overlay-spinner").hidden = false;
+}
+function showOverlayError(msg) {
+  $("#overlay").hidden = false;
+  $("#overlay-msg").textContent = msg;
+  $("#overlay-retry").hidden = false;
+  $("#overlay-spinner").hidden = true;
+}
+function hideOverlay() { $("#overlay").hidden = true; }
+
+function openModal(id) { document.getElementById(id).hidden = false; document.body.classList.add("modal-open"); }
+function closeModal(id) { document.getElementById(id).hidden = true; document.body.classList.remove("modal-open"); }
+function cancelModal(id) {
+  closeModal(id);
+  if (id === "confirm-modal" && confirmResolve) { confirmResolve(false); confirmResolve = null; }
+}
+function confirmDialog(message) {
+  $("#confirm-msg").textContent = message;
+  openModal("confirm-modal");
+  return new Promise(res => { confirmResolve = res; });
+}
+
+/* ================= Auth (MSAL) ================= */
+function buildMsal() {
+  return new msal.PublicClientApplication({
+    auth: {
+      clientId: MSAL_CLIENT_ID,
+      authority: "https://login.microsoftonline.com/" + TENANT + ".onmicrosoft.com",
+      redirectUri: window.location.origin + window.location.pathname,
+      postLogoutRedirectUri: window.location.origin + window.location.pathname
+    },
+    cache: { cacheLocation: "localStorage", storeAuthStateInCookie: false }
+  });
+}
+async function getToken() {
+  const account = msalApp.getActiveAccount();
+  if (!account) throw new Error("Not signed in.");
+  try {
+    const res = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: account });
+    return res.accessToken;
+  } catch (err) {
+    if (err instanceof msal.InteractionRequiredAuthError) {
+      await msalApp.acquireTokenRedirect({ scopes: SCOPES });
+      return new Promise(() => {}); // page is redirecting
+    }
+    throw err;
+  }
+}
+
+/* ================= Graph API ================= */
+async function graphRequest(url, options) {
+  options = options || {};
+  for (let attempt = 0; ; attempt++) {
+    const token = await getToken();
+    const headers = Object.assign({ "Authorization": "Bearer " + token }, options.headers || {});
+    if (options.body) headers["Content-Type"] = "application/json";
+    const res = await fetch(url, Object.assign({}, options, { headers: headers }));
+    if (res.status === 429 && attempt < 2) {
+      const wait = (Number(res.headers.get("Retry-After")) || 2) * 1000;
+      await new Promise(r => setTimeout(r, wait));
+      continue;
+    }
+    if (!res.ok) {
+      let detail = "";
+      try { const j = await res.json(); detail = (j.error && j.error.message) || ""; } catch (e) { /* no body */ }
+      throw new Error(res.status + " " + detail);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+}
+async function fetchAllItems(listName) {
+  let url = GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items?$expand=fields&$top=500";
+  const items = [];
+  while (url) {
+    const data = await graphRequest(url);
+    items.push.apply(items, data.value || []);
+    url = data["@odata.nextLink"] || null;
+  }
+  return items;
+}
+function createItem(listName, fields) {
+  return graphRequest(GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items", { method: "POST", body: JSON.stringify({ fields: fields }) });
+}
+function updateItem(listName, id, fields) {
+  return graphRequest(GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items/" + id + "/fields", { method: "PATCH", body: JSON.stringify(fields) });
+}
+function deleteItem(listName, id) {
+  return graphRequest(GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items/" + id, { method: "DELETE" });
+}
+
+/* ================= Data layer ================= */
+async function loadList(key) {
+  const items = await fetchAllItems(LISTS[key]);
+  state[key] = items.map(it => Object.assign({ id: String(it.id) }, it.fields));
+}
+async function loadAll() {
+  await Promise.all(Object.keys(LISTS).map(loadList));
+}
+// Lookup display: prefer the value Graph returns in fields, else resolve via cached list by LookupId.
+function lookupTitle(row, name, cacheKey) {
+  const direct = row[name];
+  if (typeof direct === "string" && direct.trim()) return direct;
+  const id = row[name + "LookupId"];
+  if (id === undefined || id === null || id === "") return "";
+  const hit = state[cacheKey].find(x => String(x.id) === String(id));
+  return hit ? (hit.Title || "") : "";
+}
+function externalAdviserFee() {
+  const s = state.settings.find(x => String(x.Title || "").toLowerCase() === "externaladviserfee");
+  if (!s) return null;
+  const n = Number(s.Value);
+  return isNaN(n) ? null : n;
+}
+function stripEmpty(fields) {
+  const out = {};
+  for (const k in fields) {
+    if (fields[k] === null || fields[k] === "") continue;
+    out[k] = fields[k];
+  }
+  return out;
+}
+async function saveRecord(key, id, fields, modalId, form) {
+  const btn = form.querySelector('button[type="submit"]');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    if (id) await updateItem(LISTS[key], id, fields);
+    else await createItem(LISTS[key], stripEmpty(fields));
+    closeModal(modalId);
+    showToast("Saved.");
+    await loadList(key);
+    renderActivePage();
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+async function removeRecord(key, id) {
+  try {
+    await deleteItem(LISTS[key], id);
+    showToast("Deleted.");
+    await loadList(key);
+    renderActivePage();
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
+}
+//[S1-end]
+/* ================= Navigation ================= */
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll(".nav-link").forEach(b => b.classList.toggle("active", b.dataset.page === page));
+  document.querySelectorAll(".page").forEach(p => { p.hidden = (p.id !== "page-" + page); });
+  closeSidebar();
+  renderActivePage();
+}
+function renderActivePage() {
+  if (currentPage === "dashboard") renderDashboard();
+  else if (currentPage === "applications") renderApplications();
+  else if (currentPage === "claims") renderClaims();
+  else if (currentPage === "settings") renderSettings();
+}
+function closeSidebar() {
+  $("#sidebar").classList.remove("open");
+  $("#backdrop").hidden = true;
+}
+
+/* ================= Select helpers ================= */
+function fillOptions(sel, pairs, blankLabel) {
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">' + esc(blankLabel) + "</option>" +
+    pairs.map(p => '<option value="' + esc(String(p[0])) + '">' + esc(String(p[1] === null || p[1] === undefined ? "" : p[1])) + "</option>").join("");
+  if (Array.prototype.some.call(sel.options, o => o.value === cur)) sel.value = cur;
+}
+function fillStaticSelect(sel, options, selected, blankLabel) {
+  sel.innerHTML = (blankLabel !== undefined ? '<option value="">' + esc(blankLabel) + "</option>" : "") +
+    options.map(o => "<option>" + esc(o) + "</option>").join("");
+  sel.value = (selected && options.indexOf(selected) >= 0) ? selected : "";
+}
+// Active-only entries, plus the currently selected one even if inactive (so edits don't lose it).
+function fillLookupSelect(sel, cache, currentId, blankLabel) {
+  const opts = sortByTitle(cache.filter(isActive));
+  if (currentId !== undefined && currentId !== null && currentId !== "" &&
+      !opts.some(x => String(x.id) === String(currentId))) {
+    const cur = cache.find(x => String(x.id) === String(currentId));
+    if (cur) opts.push(cur);
+  }
+  sel.innerHTML = '<option value="">' + esc(blankLabel || "Select…") + "</option>" +
+    opts.map(x => '<option value="' + esc(String(x.id)) + '">' + esc(x.Title || "") + "</option>").join("");
+  sel.value = (currentId !== undefined && currentId !== null) ? String(currentId) : "";
+  if (sel.selectedIndex < 0) sel.value = "";
+}
+
+/* ================= Dashboard ================= */
+function countBy(arr, fn) {
+  const m = new Map();
+  arr.forEach(x => { const k = fn(x); m.set(k, (m.get(k) || 0) + 1); });
+  const entries = Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  return { labels: entries.map(e => e[0]), data: entries.map(e => e[1]) };
+}
+function countByOrdered(arr, fn, order) {
+  const m = new Map();
+  arr.forEach(x => { const k = fn(x) || "Not set"; m.set(k, (m.get(k) || 0) + 1); });
+  const labels = [], data = [];
+  (order || []).forEach(k => { if (m.has(k)) { labels.push(k); data.push(m.get(k)); m.delete(k); } });
+  Array.from(m.entries()).sort((a, b) => b[1] - a[1]).forEach(e => { labels.push(e[0]); data.push(e[1]); });
+  return { labels: labels, data: data };
+}
+function drawChart(id, config, hasData) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const canvas = document.getElementById(id);
+  const empty = canvas.parentElement.querySelector(".no-data");
+  if (typeof Chart === "undefined") {
+    canvas.style.display = "none";
+    empty.hidden = false;
+    empty.textContent = "Charts unavailable (Chart.js failed to load)";
+    return;
+  }
+  canvas.style.display = hasData ? "block" : "none";
+  empty.hidden = !!hasData;
+  if (!hasData) return;
+  charts[id] = new Chart(canvas.getContext("2d"), config);
+}
+function drawBar(id, counts, color, money) {
+  const yTicks = money
+    ? { color: "#64748b", callback: v => "$" + Number(v).toLocaleString("en-AU") }
+    : { color: "#64748b", precision: 0 };
+  drawChart(id, {
+    type: "bar",
+    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: color, borderRadius: 5, maxBarThickness: 46 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: money ? { callbacks: { label: c => audFmt.format(c.parsed.y) } } : {}
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#64748b", autoSkip: true, maxRotation: 45 } },
+        y: { beginAtZero: true, grid: { color: "#eef2f7" }, ticks: yTicks }
+      }
+    }
+  }, counts.labels.length > 0);
+}
+function drawPie(id, counts, colorMap) {
+  const colors = counts.labels.map((l, i) => (colorMap && colorMap[l]) || PIE_COLORS[i % PIE_COLORS.length]);
+  drawChart(id, {
+    type: "pie",
+    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: colors, borderWidth: 2, borderColor: "#fff" }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 14, color: "#475569" } } }
+    }
+  }, counts.labels.length > 0);
+}
+function renderDashboard() {
+  const apps = state.applications, claims = state.claims;
+  const inProg = apps.filter(a => a.Status === "In Progress" || a.Status === "Submitted").length;
+  const expected = sumBy(apps, a => a.ExpectedCommission);
+  const received = sumBy(apps, a => a.ReceivedCommission);
+  const openClaims = claims.filter(c => c.ClaimStatus === "Lodged" || c.ClaimStatus === "Assessing").length;
+  const cards = [
+    { label: "Total Applications", value: apps.length },
+    { label: "Applications In Progress", value: inProg },
+    { label: "Total Expected Commission", value: audFmt.format(expected), money: true },
+    { label: "Total Received Commission", value: audFmt.format(received), money: true },
+    { label: "Commission Outstanding", value: audFmt.format(expected - received), money: true },
+    { label: "Total Claims", value: claims.length },
+    { label: "Open Claims", value: openClaims }
+  ];
+  $("#dash-cards").innerHTML = cards.map(c =>
+    '<div class="metric-card"><div class="metric-label">' + esc(c.label) + '</div><div class="metric-value' + (c.money ? " metric-money" : "") + '">' + esc(c.value) + "</div></div>"
+  ).join("");
+
+  drawBar("chartInsurer", countBy(apps, a => lookupTitle(a, "Insurer", "insurers") || "Unassigned"), "#16b377", false);
+  drawBar("chartAdviser", countBy(apps, a => lookupTitle(a, "Adviser", "advisers") || "Unassigned"), "#1a3a5f", false);
+
+  const byMonth = new Map();
+  apps.forEach(a => {
+    const amt = Number(a.ReceivedCommission) || 0;
+    const key = a.CommissionPaidDate ? String(a.CommissionPaidDate).slice(0, 7) : null;
+    if (amt && key) byMonth.set(key, (byMonth.get(key) || 0) + amt);
+  });
+  const keys = Array.from(byMonth.keys()).sort();
+  drawBar("chartMonth", {
+    labels: keys.map(k => { const p = k.split("-"); return MONTH_NAMES[Number(p[1]) - 1] + " " + p[0]; }),
+    data: keys.map(k => byMonth.get(k))
+  }, "#0f9d66", true);
+
+  drawPie("chartStatus", countByOrdered(apps, a => a.Status, APP_STATUSES), STATUS_COLORS);
+  drawPie("chartClaims", countByOrdered(claims, c => c.ClaimStatus, CLAIM_STATUSES), CLAIM_STATUS_COLORS);
+}
+
+/* ================= Applications ================= */
+function fillAppFilterSelects() {
+  fillOptions($("#app-filter-status"), APP_STATUSES.map(s => [s, s]), "All Statuses");
+  fillOptions($("#app-filter-adviser"), sortByTitle(state.advisers).map(a => [a.id, a.Title]), "All Advisers");
+  fillOptions($("#app-filter-insurer"), sortByTitle(state.insurers).map(i => [i.id, i.Title]), "All Insurers");
+}
+function renderApplications() {
+  fillAppFilterSelects();
+  renderApplicationsTable();
+}
+function statusBadge(s) {
+  if (!s) return "";
+  return '<span class="badge ' + (STATUS_BADGE[s] || "badge-gray") + '">' + esc(s) + "</span>";
+}
+function claimBadge(s) {
+  if (!s) return "";
+  return '<span class="badge ' + (CLAIM_BADGE[s] || "badge-gray") + '">' + esc(s) + "</span>";
+}
+function appRow(a) {
+  const insurer = lookupTitle(a, "Insurer", "insurers");
+  const adviser = lookupTitle(a, "Adviser", "advisers");
+  return "<tr>" +
+    '<td class="td-title">' + esc(a.Title) + "</td>" +
+    "<td>" + esc(a.ClientType || "") + "</td>" +
+    "<td>" + fmtDate(a.SubmissionDate) + "</td>" +
+    "<td>" + fmtDate(a.CompletionDate) + "</td>" +
+    "<td>" + esc(insurer) + "</td>" +
+    "<td>" + esc(adviser) + "</td>" +
+    "<td>" + (a.InsuranceTeam ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-gray">No</span>') + "</td>" +
+    "<td>" + statusBadge(a.Status) + "</td>" +
+    '<td class="td-num">' + fmtAUD(a.ExpectedCommission) + "</td>" +
+    '<td class="td-num">' + fmtAUD(a.ReceivedCommission) + "</td>" +
+    "<td>" + fmtDate(a.CommissionPaidDate) + "</td>" +
+    '<td class="td-actions">' +
+      '<button class="icon-btn" data-action="edit" data-id="' + a.id + '" title="Edit">' + ICON_EDIT + "</button>" +
+      '<button class="icon-btn danger" data-action="delete" data-id="' + a.id + '" title="Delete">' + ICON_TRASH + "</button>" +
+    "</td></tr>";
+}
+function renderApplicationsTable() {
+  const q = $("#app-search").value.trim().toLowerCase();
+  const status = $("#app-filter-status").value;
+  const adviser = $("#app-filter-adviser").value;
+  const insurer = $("#app-filter-insurer").value;
+  const team = $("#app-filter-team").value;
+  const from = $("#app-filter-from").value;
+  const to = $("#app-filter-to").value;
+  const rows = state.applications.filter(a => {
+    if (status && a.Status !== status) return false;
+    if (adviser && String(a.AdviserLookupId === undefined || a.AdviserLookupId === null ? "" : a.AdviserLookupId) !== adviser) return false;
+    if (insurer && String(a.InsurerLookupId === undefined || a.InsurerLookupId === null ? "" : a.InsurerLookupId) !== insurer) return false;
+    if (team === "yes" && !a.InsuranceTeam) return false;
+    if (team === "no" && a.InsuranceTeam) return false;
+    const sub = a.SubmissionDate ? String(a.SubmissionDate).slice(0, 10) : "";
+    if (from && (!sub || sub < from)) return false;
+    if (to && (!sub || sub > to)) return false;
+    if (q) {
+      const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), a.Status, a.ClientType, a.ImplementationManager].join(" ").toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  }).sort((x, y) => String(y.SubmissionDate || "").localeCompare(String(x.SubmissionDate || "")));
+  $("#app-count").textContent = rows.length + " of " + state.applications.length;
+  $("#applications-tbody").innerHTML = rows.length
+    ? rows.map(appRow).join("")
+    : '<tr><td colspan="12" class="td-empty">No applications found.</td></tr>';
+}
+function openAppModal(item) {
+  $("#app-modal-title").textContent = item ? "Edit Application" : "New Application";
+  $("#af-id").value = item ? item.id : "";
+  $("#af-title").value = (item && item.Title) || "";
+  fillStaticSelect($("#af-clienttype"), CLIENT_TYPES, item ? item.ClientType : "", "Select…");
+  fillStaticSelect($("#af-status"), APP_STATUSES, item ? item.Status : "In Progress", "Select…");
+  $("#af-subdate").value = dateInputVal(item && item.SubmissionDate);
+  $("#af-compdate").value = dateInputVal(item && item.CompletionDate);
+  fillLookupSelect($("#af-insurer"), state.insurers, item ? item.InsurerLookupId : "", "Select insurer…");
+  fillLookupSelect($("#af-adviser"), state.advisers, item ? item.AdviserLookupId : "", "Select adviser…");
+  $("#af-team").checked = item ? !!item.InsuranceTeam : false;
+  $("#af-implmgr").value = (item && item.ImplementationManager) || "";
+  $("#af-expected").value = (item && item.ExpectedCommission !== null && item.ExpectedCommission !== undefined) ? item.ExpectedCommission : "";
+  $("#af-received").value = (item && item.ReceivedCommission !== null && item.ReceivedCommission !== undefined) ? item.ReceivedCommission : "";
+  $("#af-paiddate").value = dateInputVal(item && item.CommissionPaidDate);
+  $("#af-commnotes").value = (item && item.CommissionNotes) || "";
+  $("#af-notes").value = (item && item.Notes) || "";
+  // New external (non-team) application: default Expected Commission from Settings, still editable.
+  if (!item && !$("#af-team").checked) {
+    const fee = externalAdviserFee();
+    if (fee !== null) $("#af-expected").value = fee;
+  }
+  openModal("app-modal");
+}
+//[S2-end]
+/* ================= Claims ================= */
+function fillClaimFilterSelects() {
+  fillOptions($("#claim-filter-status"), CLAIM_STATUSES.map(s => [s, s]), "All Statuses");
+  fillOptions($("#claim-filter-adviser"), sortByTitle(state.advisers).map(a => [a.id, a.Title]), "All Advisers");
+  fillOptions($("#claim-filter-insurer"), sortByTitle(state.insurers).map(i => [i.id, i.Title]), "All Insurers");
+  fillOptions($("#claim-filter-type"), CLAIM_TYPES.map(t => [t, t]), "All Types");
+}
+function renderClaims() {
+  fillClaimFilterSelects();
+  renderClaimsTable();
+}
+function claimRow(c) {
+  const linked = lookupTitle(c, "LinkedApplication", "applications");
+  const adviser = lookupTitle(c, "Adviser", "advisers");
+  const insurer = lookupTitle(c, "Insurer", "insurers");
+  return "<tr>" +
+    '<td class="td-title">' + esc(c.Title) + "</td>" +
+    "<td>" + esc(linked) + "</td>" +
+    "<td>" + esc(adviser) + "</td>" +
+    "<td>" + esc(insurer) + "</td>" +
+    "<td>" + esc(c.ClaimType || "") + "</td>" +
+    "<td>" + claimBadge(c.ClaimStatus) + "</td>" +
+    "<td>" + fmtDate(c.LodgementDate) + "</td>" +
+    '<td class="td-num">' + fmtAUD(c.BenefitAmount) + "</td>" +
+    '<td class="td-num">' + fmtAUD(c.MonthlyBenefitAmount) + "</td>" +
+    '<td class="td-num">' + fmtAUD(c.TotalPaid) + "</td>" +
+    '<td class="td-actions">' +
+      '<button class="icon-btn" data-action="edit" data-id="' + c.id + '" title="Edit">' + ICON_EDIT + "</button>" +
+      '<button class="icon-btn danger" data-action="delete" data-id="' + c.id + '" title="Delete">' + ICON_TRASH + "</button>" +
+    "</td></tr>";
+}
+function renderClaimsTable() {
+  const q = $("#claim-search").value.trim().toLowerCase();
+  const status = $("#claim-filter-status").value;
+  const adviser = $("#claim-filter-adviser").value;
+  const insurer = $("#claim-filter-insurer").value;
+  const type = $("#claim-filter-type").value;
+  const rows = state.claims.filter(c => {
+    if (status && c.ClaimStatus !== status) return false;
+    if (adviser && String(c.AdviserLookupId === undefined || c.AdviserLookupId === null ? "" : c.AdviserLookupId) !== adviser) return false;
+    if (insurer && String(c.InsurerLookupId === undefined || c.InsurerLookupId === null ? "" : c.InsurerLookupId) !== insurer) return false;
+    if (type && c.ClaimType !== type) return false;
+    if (q) {
+      const hay = [c.Title, lookupTitle(c, "LinkedApplication", "applications"), lookupTitle(c, "Adviser", "advisers"), lookupTitle(c, "Insurer", "insurers"), c.ClaimType, c.ClaimStatus].join(" ").toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  }).sort((x, y) => String(y.LodgementDate || "").localeCompare(String(x.LodgementDate || "")));
+  $("#claim-count").textContent = rows.length + " of " + state.claims.length;
+  $("#claims-tbody").innerHTML = rows.length
+    ? rows.map(claimRow).join("")
+    : '<tr><td colspan="11" class="td-empty">No claims found.</td></tr>';
+}
+function openClaimModal(item) {
+  $("#claim-modal-title").textContent = item ? "Edit Claim" : "New Claim";
+  $("#cf-id").value = item ? item.id : "";
+  $("#cf-title").value = (item && item.Title) || "";
+  fillLookupSelect($("#cf-linkedapp"), sortByTitle(state.applications), item ? item.LinkedApplicationLookupId : "", "— None —");
+  fillLookupSelect($("#cf-adviser"), state.advisers, item ? item.AdviserLookupId : "", "Select adviser…");
+  fillLookupSelect($("#cf-insurer"), state.insurers, item ? item.InsurerLookupId : "", "Select insurer…");
+  fillStaticSelect($("#cf-claimtype"), CLAIM_TYPES, item ? item.ClaimType : "", "Select…");
+  fillStaticSelect($("#cf-claimstatus"), CLAIM_STATUSES, item ? item.ClaimStatus : "Lodged", "Select…");
+  $("#cf-lodgedate").value = dateInputVal(item && item.LodgementDate);
+  $("#cf-decisiondate").value = dateInputVal(item && item.DecisionDate);
+  $("#cf-benefit").value = (item && item.BenefitAmount !== null && item.BenefitAmount !== undefined) ? item.BenefitAmount : "";
+  $("#cf-monthlybenefit").value = (item && item.MonthlyBenefitAmount !== null && item.MonthlyBenefitAmount !== undefined) ? item.MonthlyBenefitAmount : "";
+  $("#cf-firstpay").value = dateInputVal(item && item.FirstPaymentDate);
+  $("#cf-lastpay").value = dateInputVal(item && item.LastPaymentDate);
+  $("#cf-totalpaid").value = (item && item.TotalPaid !== null && item.TotalPaid !== undefined) ? item.TotalPaid : "";
+  $("#cf-notes").value = (item && item.Notes) || "";
+  openModal("claim-modal");
+}
+
+/* ================= Settings page ================= */
+function renderSettings() {
+  renderSettingsTable();
+  renderAdvisersTable();
+  renderInsurersTable();
+}
+function renderSettingsTable() {
+  const rows = sortByTitle(state.settings);
+  $("#settings-tbody").innerHTML = rows.length ? rows.map(s =>
+    '<tr data-id="' + s.id + '">' +
+      '<td class="td-title">' + esc(s.Title) + "</td>" +
+      '<td class="val-cell">' + esc(s.Value === null || s.Value === undefined ? "" : s.Value) + "</td>" +
+      "<td>" + esc(s.Description || "") + "</td>" +
+      '<td class="td-actions"><button class="btn btn-ghost btn-sm" data-action="edit-value" data-id="' + s.id + '">Edit</button></td>' +
+    "</tr>"
+  ).join("") : '<tr><td colspan="4" class="td-empty">No settings found.</td></tr>';
+}
+function startValueEdit(id) {
+  renderSettingsTable(); // reset any other row in edit mode
+  const row = $('#settings-tbody tr[data-id="' + id + '"]');
+  const s = state.settings.find(x => x.id === id);
+  if (!row || !s) return;
+  row.querySelector(".val-cell").innerHTML =
+    '<input class="input input-sm" id="value-edit-input" value="' + esc(s.Value === null || s.Value === undefined ? "" : s.Value) + '">';
+  row.querySelector(".td-actions").innerHTML =
+    '<button class="btn btn-sm" data-action="save-value" data-id="' + id + '">Save</button> ' +
+    '<button class="btn btn-ghost btn-sm" data-action="cancel-value" data-id="' + id + '">Cancel</button>';
+  $("#value-edit-input").focus();
+}
+async function saveValueEdit(id, btn) {
+  const input = $("#value-edit-input");
+  if (!input) return;
+  const val = input.value;
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    await updateItem(LISTS.settings, id, { Value: val });
+    const s = state.settings.find(x => x.id === id);
+    if (s) s.Value = val;
+    showToast("Setting saved.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
+  renderSettingsTable();
+}
+function renderAdvisersTable() {
+  const rows = sortByTitle(state.advisers);
+  $("#advisers-tbody").innerHTML = rows.length ? rows.map(a =>
+    "<tr>" +
+      '<td class="td-title">' + esc(a.Title) + "</td>" +
+      "<td>" + esc(a.Email || "") + "</td>" +
+      "<td>" + (isActive(a) ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-gray">Inactive</span>') + "</td>" +
+      '<td class="td-actions">' +
+        '<button class="icon-btn" data-action="edit" data-id="' + a.id + '" title="Edit">' + ICON_EDIT + "</button> " +
+        '<button class="btn btn-ghost btn-sm" data-action="toggle" data-id="' + a.id + '">' + (isActive(a) ? "Deactivate" : "Activate") + "</button>" +
+      "</td></tr>"
+  ).join("") : '<tr><td colspan="4" class="td-empty">No advisers found.</td></tr>';
+}
+function renderInsurersTable() {
+  const rows = sortByTitle(state.insurers);
+  $("#insurers-tbody").innerHTML = rows.length ? rows.map(i =>
+    "<tr>" +
+      '<td class="td-title">' + esc(i.Title) + "</td>" +
+      "<td>" + (isActive(i) ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-gray">Inactive</span>') + "</td>" +
+      '<td class="td-actions">' +
+        '<button class="icon-btn" data-action="edit" data-id="' + i.id + '" title="Edit">' + ICON_EDIT + "</button> " +
+        '<button class="btn btn-ghost btn-sm" data-action="toggle" data-id="' + i.id + '">' + (isActive(i) ? "Deactivate" : "Activate") + "</button>" +
+      "</td></tr>"
+  ).join("") : '<tr><td colspan="3" class="td-empty">No insurers found.</td></tr>';
+}
+function openAdviserModal(item) {
+  $("#adviser-modal-title").textContent = item ? "Edit Adviser" : "New Adviser";
+  $("#advf-id").value = item ? item.id : "";
+  $("#advf-title").value = (item && item.Title) || "";
+  $("#advf-email").value = (item && item.Email) || "";
+  $("#advf-active").checked = item ? isActive(item) : true;
+  openModal("adviser-modal");
+}
+function openInsurerModal(item) {
+  $("#insurer-modal-title").textContent = item ? "Edit Insurer" : "New Insurer";
+  $("#insf-id").value = item ? item.id : "";
+  $("#insf-title").value = (item && item.Title) || "";
+  $("#insf-active").checked = item ? isActive(item) : true;
+  openModal("insurer-modal");
+}
+async function toggleActive(key, item, btn) {
+  btn.disabled = true;
+  try {
+    await updateItem(LISTS[key], item.id, { Active: !isActive(item) });
+    await loadList(key);
+    showToast("Updated.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
+  renderSettings();
+}
+
+/* ================= Events ================= */
+document.querySelectorAll(".nav-link").forEach(b => b.addEventListener("click", () => navigate(b.dataset.page)));
+$("#menu-btn").addEventListener("click", () => {
+  const open = $("#sidebar").classList.toggle("open");
+  $("#backdrop").hidden = !open;
+});
+$("#backdrop").addEventListener("click", closeSidebar);
+
+document.querySelectorAll("[data-refresh]").forEach(b => b.addEventListener("click", async () => {
+  b.disabled = true;
+  try {
+    await loadAll();
+    renderActivePage();
+    showToast("Data refreshed.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
+  b.disabled = false;
+}));
+
+document.querySelectorAll(".modal-overlay").forEach(ov => {
+  ov.addEventListener("mousedown", e => { if (e.target === ov) cancelModal(ov.id); });
+});
+document.querySelectorAll("[data-close]").forEach(b => {
+  b.addEventListener("click", () => cancelModal(b.closest(".modal-overlay").id));
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    const open = Array.from(document.querySelectorAll(".modal-overlay")).find(m => !m.hidden);
+    if (open) cancelModal(open.id);
+  }
+});
+$("#confirm-cancel").addEventListener("click", () => cancelModal("confirm-modal"));
+$("#confirm-ok").addEventListener("click", () => {
+  closeModal("confirm-modal");
+  if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+});
+
+/* --- Applications events --- */
+$("#btn-add-application").addEventListener("click", () => openAppModal(null));
+["app-search", "app-filter-status", "app-filter-adviser", "app-filter-insurer", "app-filter-team", "app-filter-from", "app-filter-to"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("input", renderApplicationsTable);
+  el.addEventListener("change", renderApplicationsTable);
+});
+$("#app-clear-filters").addEventListener("click", () => {
+  ["app-search", "app-filter-status", "app-filter-adviser", "app-filter-insurer", "app-filter-team", "app-filter-from", "app-filter-to"].forEach(id => { document.getElementById(id).value = ""; });
+  renderApplicationsTable();
+});
+$("#applications-tbody").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const item = state.applications.find(x => x.id === btn.dataset.id);
+  if (!item) return;
+  if (btn.dataset.action === "edit") openAppModal(item);
+  else if (btn.dataset.action === "delete") {
+    if (await confirmDialog('Delete application "' + (item.Title || "Untitled") + '"? This cannot be undone.')) {
+      await removeRecord("applications", item.id);
+    }
+  }
+});
+$("#af-team").addEventListener("change", () => {
+  if (!$("#af-team").checked) {
+    const fee = externalAdviserFee();
+    if (fee !== null) $("#af-expected").value = fee;
+  }
+});
+$("#app-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fields = {
+    Title: $("#af-title").value.trim(),
+    ClientType: $("#af-clienttype").value || null,
+    SubmissionDate: $("#af-subdate").value || null,
+    CompletionDate: $("#af-compdate").value || null,
+    InsurerLookupId: $("#af-insurer").value ? Number($("#af-insurer").value) : null,
+    AdviserLookupId: $("#af-adviser").value ? Number($("#af-adviser").value) : null,
+    InsuranceTeam: $("#af-team").checked,
+    ImplementationManager: $("#af-implmgr").value.trim(),
+    Status: $("#af-status").value || null,
+    ExpectedCommission: numOrNull($("#af-expected").value),
+    ReceivedCommission: numOrNull($("#af-received").value),
+    CommissionPaidDate: $("#af-paiddate").value || null,
+    CommissionNotes: $("#af-commnotes").value,
+    Notes: $("#af-notes").value
+  };
+  await saveRecord("applications", $("#af-id").value, fields, "app-modal", e.target);
+});
+
+/* --- Claims events --- */
+$("#btn-add-claim").addEventListener("click", () => openClaimModal(null));
+["claim-search", "claim-filter-status", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("input", renderClaimsTable);
+  el.addEventListener("change", renderClaimsTable);
+});
+$("#claim-clear-filters").addEventListener("click", () => {
+  ["claim-search", "claim-filter-status", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => { document.getElementById(id).value = ""; });
+  renderClaimsTable();
+});
+$("#claims-tbody").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const item = state.claims.find(x => x.id === btn.dataset.id);
+  if (!item) return;
+  if (btn.dataset.action === "edit") openClaimModal(item);
+  else if (btn.dataset.action === "delete") {
+    if (await confirmDialog('Delete claim "' + (item.Title || "Untitled") + '"? This cannot be undone.')) {
+      await removeRecord("claims", item.id);
+    }
+  }
+});
+$("#claim-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fields = {
+    Title: $("#cf-title").value.trim(),
+    LinkedApplicationLookupId: $("#cf-linkedapp").value ? Number($("#cf-linkedapp").value) : null,
+    AdviserLookupId: $("#cf-adviser").value ? Number($("#cf-adviser").value) : null,
+    InsurerLookupId: $("#cf-insurer").value ? Number($("#cf-insurer").value) : null,
+    ClaimType: $("#cf-claimtype").value || null,
+    ClaimStatus: $("#cf-claimstatus").value || null,
+    LodgementDate: $("#cf-lodgedate").value || null,
+    DecisionDate: $("#cf-decisiondate").value || null,
+    BenefitAmount: numOrNull($("#cf-benefit").value),
+    MonthlyBenefitAmount: numOrNull($("#cf-monthlybenefit").value),
+    FirstPaymentDate: $("#cf-firstpay").value || null,
+    LastPaymentDate: $("#cf-lastpay").value || null,
+    TotalPaid: numOrNull($("#cf-totalpaid").value),
+    Notes: $("#cf-notes").value
+  };
+  await saveRecord("claims", $("#cf-id").value, fields, "claim-modal", e.target);
+});
+
+/* --- Settings events --- */
+$("#settings-tbody").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  if (btn.dataset.action === "edit-value") startValueEdit(btn.dataset.id);
+  else if (btn.dataset.action === "cancel-value") renderSettingsTable();
+  else if (btn.dataset.action === "save-value") await saveValueEdit(btn.dataset.id, btn);
+});
+$("#settings-tbody").addEventListener("keydown", e => {
+  if (e.target.id === "value-edit-input" && e.key === "Enter") {
+    e.preventDefault();
+    const btn = $('#settings-tbody button[data-action="save-value"]');
+    if (btn) btn.click();
+  }
+});
+$("#btn-add-adviser").addEventListener("click", () => openAdviserModal(null));
+$("#btn-add-insurer").addEventListener("click", () => openInsurerModal(null));
+$("#advisers-tbody").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const item = state.advisers.find(x => x.id === btn.dataset.id);
+  if (!item) return;
+  if (btn.dataset.action === "edit") openAdviserModal(item);
+  else if (btn.dataset.action === "toggle") await toggleActive("advisers", item, btn);
+});
+$("#insurers-tbody").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const item = state.insurers.find(x => x.id === btn.dataset.id);
+  if (!item) return;
+  if (btn.dataset.action === "edit") openInsurerModal(item);
+  else if (btn.dataset.action === "toggle") await toggleActive("insurers", item, btn);
+});
+$("#adviser-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fields = {
+    Title: $("#advf-title").value.trim(),
+    Email: $("#advf-email").value.trim(),
+    Active: $("#advf-active").checked
+  };
+  await saveRecord("advisers", $("#advf-id").value, fields, "adviser-modal", e.target);
+});
+$("#insurer-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fields = {
+    Title: $("#insf-title").value.trim(),
+    Active: $("#insf-active").checked
+  };
+  await saveRecord("insurers", $("#insf-id").value, fields, "insurer-modal", e.target);
+});
+
+/* --- Auth events --- */
+$("#signin-btn").addEventListener("click", () => {
+  if (!msalApp) { showToast("Sign-in is unavailable (MSAL failed to load).", "error"); return; }
+  msalApp.loginRedirect({ scopes: SCOPES }).catch(err => {
+    console.error(err);
+    showToast(friendly(err), "error");
+  });
+});
+$("#signout-btn").addEventListener("click", () => {
+  msalApp.logoutRedirect({ account: msalApp.getActiveAccount() });
+});
+$("#overlay-retry").addEventListener("click", () => location.reload());
+
+/* ================= Init ================= */
+async function init() {
+  showOverlay("Signing you in…");
+  try {
+    if (typeof msal === "undefined") throw new Error("MSAL library failed to load.");
+    msalApp = buildMsal();
+    if (msalApp.initialize) await msalApp.initialize();
+    const resp = await msalApp.handleRedirectPromise();
+    if (resp && resp.account) msalApp.setActiveAccount(resp.account);
+    if (!msalApp.getActiveAccount()) {
+      const accts = msalApp.getAllAccounts();
+      if (accts.length) msalApp.setActiveAccount(accts[0]);
+    }
+  } catch (err) {
+    console.error(err);
+    hideOverlay();
+    $("#signin-screen").hidden = false;
+    showToast(friendly(err), "error");
+    return;
+  }
+  const account = msalApp.getActiveAccount();
+  if (!account) {
+    hideOverlay();
+    $("#signin-screen").hidden = false;
+    return;
+  }
+  state.account = account;
+  $("#signin-screen").hidden = true;
+  $("#user-name").textContent = account.name || account.username || "";
+  $("#user-email").textContent = account.username || "";
+  showOverlay("Loading data from SharePoint…");
+  try {
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    showOverlayError("Could not load data. " + friendly(err));
+    return;
+  }
+  hideOverlay();
+  $("#app").hidden = false;
+  navigate("dashboard");
+}
+init();
+//[S3-end]
+</script>
+</body>
+</html>
