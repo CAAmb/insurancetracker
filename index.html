@@ -1175,8 +1175,24 @@ async function graphRequest(url, options) {
     return res.json();
   }
 }
+// Resolve each configured list to its Graph list ID once — immune to display-name vs URL-name
+// mismatches (Graph addresses lists by their internal name, which often differs from the title).
+const listSeg = {};
+async function resolveLists() {
+  const url = GRAPH_LISTS_BASE.replace(/\/$/, "") + "?$select=id,name,displayName&$top=400";
+  const data = await graphRequest(url);
+  const all = data.value || [];
+  const norm = s => String(s === null || s === undefined ? "" : s).trim().toLowerCase();
+  Object.keys(LISTS).forEach(key => {
+    const name = LISTS[key];
+    const want = norm(name);
+    const hit = all.find(l => norm(l.name) === want || norm(l.displayName) === want);
+    if (hit) listSeg[name] = hit.id; // address by ID; leave unmapped if not found
+  });
+}
+function segFor(listName) { return encodeURIComponent(listSeg[listName] || listName); }
 async function fetchAllItems(listName) {
-  let url = GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items?$expand=fields&$top=500";
+  let url = GRAPH_LISTS_BASE + segFor(listName) + "/items?$expand=fields&$top=500";
   const items = [];
   while (url) {
     const data = await graphRequest(url);
@@ -1186,13 +1202,13 @@ async function fetchAllItems(listName) {
   return items;
 }
 function createItem(listName, fields) {
-  return graphRequest(GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items", { method: "POST", body: JSON.stringify({ fields: fields }) });
+  return graphRequest(GRAPH_LISTS_BASE + segFor(listName) + "/items", { method: "POST", body: JSON.stringify({ fields: fields }) });
 }
 function updateItem(listName, id, fields) {
-  return graphRequest(GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items/" + id + "/fields", { method: "PATCH", body: JSON.stringify(fields) });
+  return graphRequest(GRAPH_LISTS_BASE + segFor(listName) + "/items/" + id + "/fields", { method: "PATCH", body: JSON.stringify(fields) });
 }
 function deleteItem(listName, id) {
-  return graphRequest(GRAPH_LISTS_BASE + encodeURIComponent(listName) + "/items/" + id, { method: "DELETE" });
+  return graphRequest(GRAPH_LISTS_BASE + segFor(listName) + "/items/" + id, { method: "DELETE" });
 }
 
 /* ================= Data layer ================= */
@@ -1212,6 +1228,7 @@ async function loadList(key) {
   }, it.fields));
 }
 async function loadAll() {
+  await resolveLists(); // map list display names → IDs first
   // Core lists must exist; if any fail the error names the offending list
   const core = ["advisers", "insurers", "settings", "applications", "claims"];
   await Promise.all(core.map(loadList));
