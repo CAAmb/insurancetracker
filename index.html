@@ -500,6 +500,7 @@ body{
         <label class="t-field"><span>Financial Year</span><select id="app-fy" class="input"></select></label>
         <label class="t-field"><span>Adviser</span><select id="app-filter-adviser" class="input"></select></label>
         <label class="t-field"><span>Insurer</span><select id="app-filter-insurer" class="input"></select></label>
+        <label class="t-field"><span>Loading Disc.</span><select id="app-filter-loading" class="input"></select></label>
         <button id="app-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
         <button id="app-export-csv" class="btn btn-ghost btn-sm">Export CSV</button>
         <div class="toolbar-meta">
@@ -611,6 +612,39 @@ body{
             </table>
           </div>
         </div>
+        <div class="table-card">
+          <div class="card-header">
+            <div><h2>Implementation Managers</h2></div>
+            <button class="btn btn-sm" id="btn-add-implmgr">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Manager
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="table-compact">
+              <thead><tr><th>Name</th><th>Active</th><th class="td-actions">Actions</th></tr></thead>
+              <tbody id="implmanagers-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="card-header">
+            <div>
+              <h2>Loading Discounts</h2>
+              <p class="card-note">Discount tiers selectable on Acenda applications (e.g. P1).</p>
+            </div>
+            <button class="btn btn-sm" id="btn-add-loading">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Discount
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table class="table-compact">
+              <thead><tr><th>Name</th><th>Active</th><th class="td-actions">Actions</th></tr></thead>
+              <tbody id="loadingdiscounts-tbody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -636,7 +670,8 @@ body{
           <label class="field"><span>Insurer</span><select id="af-insurer" class="input"></select></label>
           <label class="field"><span>Adviser</span><select id="af-adviser" class="input"></select></label>
           <label class="field checkbox-field span-2"><input type="checkbox" id="af-team"><span>Insurance Team Application</span></label>
-          <label class="field span-2"><span>Implementation Manager</span><input id="af-implmgr" class="input" placeholder="Name or email"></label>
+          <label class="field span-2"><span>Implementation Manager</span><select id="af-implmgr" class="input"></select></label>
+          <label class="field span-2" id="af-loading-field" hidden><span>Loading Discount <span style="color:var(--accent);font-weight:600">· Acenda</span></span><select id="af-loading" class="input"></select></label>
           <label class="field"><span>Expected Commission (AUD)</span><input type="number" step="any" id="af-expected" class="input"></label>
           <label class="field"><span>Received Commission (AUD)</span><input type="number" step="any" id="af-received" class="input"></label>
           <label class="field"><span>Commission Paid Date</span><input type="date" id="af-paiddate" class="input"></label>
@@ -760,6 +795,29 @@ body{
   </div>
 </div>
 
+<!-- ===== Generic managed-item modal (Implementation Managers, Loading Discounts) ===== -->
+<div class="modal-overlay" id="managed-modal" hidden>
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="managed-modal-title">New Item</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <form id="managed-form" class="modal-form">
+      <input type="hidden" id="mgf-id">
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field span-2"><span id="mgf-label">Name *</span><input id="mgf-title" class="input" required maxlength="255"></label>
+          <label class="field checkbox-field span-2"><input type="checkbox" id="mgf-active" checked><span>Active</span></label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ===== Status change prompt modal ===== -->
 <div class="modal-overlay" id="status-modal" hidden>
   <div class="modal modal-sm">
@@ -800,7 +858,7 @@ const MSAL_CLIENT_ID = "21c75153-acd5-4ecc-9f8a-d7a2160c249e";
 const TENANT = "coastaladvicegroup";
 const SCOPES = ["https://graph.microsoft.com/Sites.ReadWrite.All", "User.Read"];
 const GRAPH_LISTS_BASE = "https://graph.microsoft.com/v1.0/sites/coastaladvicegroup.sharepoint.com:/sites/PowerApp:/lists/";
-const LISTS = { advisers: "Advisers", insurers: "Insurers", settings: "Settings", applications: "Applications", claims: "Claims", comments: "Comments" };
+const LISTS = { advisers: "Advisers", insurers: "Insurers", settings: "Settings", applications: "Applications", claims: "Claims", comments: "Comments", implmanagers: "ImplementationManagers", loadingdiscounts: "LoadingDiscounts" };
 const APP_STATUSES = ["Submitted", "In Progress", "On Hold", "Completed", "Paid", "Did Not Complete", "Declined"];
 // Application lifecycle stages, derived from Status
 const APP_STAGES = [
@@ -840,7 +898,7 @@ const PIE_COLORS = ["#0f2433", "#3674a8", "#eba380", "#7fb8d4", "#2f8662", "#b97
 const C_NAVY = "#0f2433", C_STEEL = "#3674a8", C_NAVY_SOFT = "#16344a", C_PEACH = "#eba380", C_SKY = "#7fb8d4";
 const CHART_GRID = "#e6ebee", CHART_TICK = "#5d7183";
 
-const state = { advisers: [], insurers: [], settings: [], applications: [], claims: [], comments: [], account: null,
+const state = { advisers: [], insurers: [], settings: [], applications: [], claims: [], comments: [], implmanagers: [], loadingdiscounts: [], account: null,
   appStage: "active", claimStage: "inprogress",
   appFy: { mode: "all", fyStart: null },
   dash: { mode: "fy", fyStart: null, from: "", to: "" },
@@ -994,6 +1052,8 @@ function sortKind(key) { return NUM_KEYS.has(key) ? "num" : DATE_KEYS.has(key) ?
 function sortVal(row, key) {
   if (key === "Insurer") return lookupTitle(row, "Insurer", "insurers").toLowerCase();
   if (key === "Adviser") return lookupTitle(row, "Adviser", "advisers").toLowerCase();
+  if (key === "ImplementationManager") return lookupTitle(row, "ImplementationManager", "implmanagers").toLowerCase();
+  if (key === "LoadingDiscount") return lookupTitle(row, "LoadingDiscount", "loadingdiscounts").toLowerCase();
   if (key === "DaysTaken") { const d = daysTaken(row); return d === null ? -1 : d; }
   if (key === "InsuranceTeam") return row.InsuranceTeam ? 1 : 0;
   if (NUM_KEYS.has(key)) return Number(row[key]) || 0;
@@ -1053,7 +1113,7 @@ function setVal(id, v) { const el = document.getElementById(id); if (el && v !==
 function saveFilters(page) {
   if (page === "applications") writeLS(LS.filters(page), {
     q: $("#app-search").value, adviser: $("#app-filter-adviser").value,
-    insurer: $("#app-filter-insurer").value, fy: state.appFy
+    insurer: $("#app-filter-insurer").value, loading: $("#app-filter-loading").value, fy: state.appFy
   });
   else writeLS(LS.filters(page), {
     q: $("#claim-search").value, adviser: $("#claim-filter-adviser").value,
@@ -1066,7 +1126,7 @@ function restoreFilters(page) {
   const f = readLS(LS.filters(page));
   if (f) {
     if (page === "applications") {
-      setVal("app-search", f.q); setVal("app-filter-adviser", f.adviser); setVal("app-filter-insurer", f.insurer);
+      setVal("app-search", f.q); setVal("app-filter-adviser", f.adviser); setVal("app-filter-insurer", f.insurer); setVal("app-filter-loading", f.loading);
       if (f.fy && f.fy.mode) state.appFy = f.fy;
     } else {
       setVal("claim-search", f.q); setVal("claim-filter-adviser", f.adviser);
@@ -1232,13 +1292,12 @@ async function loadAll() {
   // Core lists must exist; if any fail the error names the offending list
   const core = ["advisers", "insurers", "settings", "applications", "claims"];
   await Promise.all(core.map(loadList));
-  // Comments is optional — a missing list shouldn't block the whole app
-  try {
-    await loadList("comments");
-  } catch (err) {
-    state.comments = [];
-    console.warn("Comments list unavailable — comment features stay empty until it exists.", err.message);
-  }
+  // Optional lists — a missing one shouldn't block the whole app (features degrade until it exists)
+  const optional = ["comments", "implmanagers", "loadingdiscounts"];
+  await Promise.all(optional.map(async key => {
+    try { await loadList(key); }
+    catch (err) { state[key] = []; console.warn('Optional list "' + LISTS[key] + '" unavailable — feature stays empty until it exists.', err.message); }
+  }));
 }
 /* ---------- Comments (shared by applications + claims) ---------- */
 function commentFk(entity) { return entity === "claims" ? "ClaimLookupId" : "ApplicationLookupId"; }
@@ -1287,6 +1346,11 @@ function lookupTitle(row, name, cacheKey) {
   if (id === undefined || id === null || id === "") return "";
   const hit = state[cacheKey].find(x => String(x.id) === String(id));
   return hit ? (hit.Title || "") : "";
+}
+function isAcenda(insurerId) {
+  if (insurerId === undefined || insurerId === null || insurerId === "") return false;
+  const ins = state.insurers.find(x => String(x.id) === String(insurerId));
+  return !!ins && String(ins.Title || "").trim().toLowerCase() === "acenda";
 }
 function externalAdviserFee() {
   const s = state.settings.find(x => String(x.Title || "").toLowerCase() === "externaladviserfee");
@@ -1580,6 +1644,7 @@ const ICON_COMMENT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none
 function fillAppFilterSelects() {
   fillOptions($("#app-filter-adviser"), sortByTitle(state.advisers).map(a => [a.id, a.Title]), "All Advisers");
   fillOptions($("#app-filter-insurer"), sortByTitle(state.insurers).map(i => [i.id, i.Title]), "All Insurers");
+  fillOptions($("#app-filter-loading"), sortByTitle(state.loadingdiscounts).map(d => [d.id, d.Title]), "All / None");
 }
 // FY selector on the Applications list (filters by SubmissionDate)
 function appFyBounds() {
@@ -1627,7 +1692,8 @@ function appColumns(stage) {
   if (stage !== "dnc") cols.push({ key: "DaysTaken", label: "Days", sortable: true, num: true, render: a => daysCell(a) });
   cols.push({ key: "Insurer", label: "Insurer", sortable: true, render: a => "<td>" + esc(lookupTitle(a, "Insurer", "insurers")) + "</td>" });
   cols.push({ key: "Adviser", label: "Adviser", sortable: true, render: a => "<td>" + esc(lookupTitle(a, "Adviser", "advisers")) + "</td>" });
-  cols.push({ key: "ImplementationManager", label: "Impl. Manager", sortable: true, render: a => "<td>" + (a.ImplementationManager ? esc(a.ImplementationManager) : '<span class="cmt-none">—</span>') + "</td>" });
+  cols.push({ key: "ImplementationManager", label: "Impl. Manager", sortable: true, render: a => { const v = lookupTitle(a, "ImplementationManager", "implmanagers"); return "<td>" + (v ? esc(v) : '<span class="cmt-none">—</span>') + "</td>"; } });
+  cols.push({ key: "LoadingDiscount", label: "Loading", sortable: true, render: a => { const v = lookupTitle(a, "LoadingDiscount", "loadingdiscounts"); return "<td>" + (v ? '<span class="badge badge-teal">' + esc(v) + "</span>" : '<span class="cmt-none">—</span>') + "</td>"; } });
   cols.push({ key: "Status", label: "Status", sortable: true, render: a => "<td>" + statusSelectHTML("applications", a.id, a.Status, APP_STATUSES, STATUS_BADGE) + "</td>" });
   if (stage === "paid") {
     cols.push({ key: "ReceivedCommission", label: "Received Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ReceivedCommission) + "</td>" });
@@ -1656,13 +1722,15 @@ function baseFilteredApplications() {
   const q = $("#app-search").value.trim().toLowerCase();
   const adviser = $("#app-filter-adviser").value;
   const insurer = $("#app-filter-insurer").value;
+  const loading = $("#app-filter-loading").value;
   const bounds = appFyBounds();
   return state.applications.filter(a => {
     if (adviser && String(a.AdviserLookupId === undefined || a.AdviserLookupId === null ? "" : a.AdviserLookupId) !== adviser) return false;
     if (insurer && String(a.InsurerLookupId === undefined || a.InsurerLookupId === null ? "" : a.InsurerLookupId) !== insurer) return false;
+    if (loading && String(a.LoadingDiscountLookupId === undefined || a.LoadingDiscountLookupId === null ? "" : a.LoadingDiscountLookupId) !== loading) return false;
     if (!inRange(a.SubmissionDate, bounds)) return false;
     if (q) {
-      const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), a.Status, a.ClientType, a.ImplementationManager].join(" ").toLowerCase();
+      const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), lookupTitle(a, "ImplementationManager", "implmanagers"), lookupTitle(a, "LoadingDiscount", "loadingdiscounts"), a.Status, a.ClientType].join(" ").toLowerCase();
       if (hay.indexOf(q) < 0) return false;
     }
     return true;
@@ -1706,6 +1774,8 @@ function renderApplicationsTable() {
 function csvValForApp(a, key) {
   if (key === "Insurer") return lookupTitle(a, "Insurer", "insurers");
   if (key === "Adviser") return lookupTitle(a, "Adviser", "advisers");
+  if (key === "ImplementationManager") return lookupTitle(a, "ImplementationManager", "implmanagers");
+  if (key === "LoadingDiscount") return lookupTitle(a, "LoadingDiscount", "loadingdiscounts");
   if (key === "SubmissionDate") return fmtDate(a.SubmissionDate);
   if (key === "CommissionPaidDate") return fmtDate(a.CommissionPaidDate);
   if (key === "DaysTaken") { const d = daysTaken(a); return d === null ? "" : d; }
@@ -1736,19 +1806,24 @@ function openAppModal(item) {
   fillLookupSelect($("#af-insurer"), state.insurers, item ? item.InsurerLookupId : "", "Select insurer…");
   fillLookupSelect($("#af-adviser"), state.advisers, item ? item.AdviserLookupId : "", "Select adviser…");
   $("#af-team").checked = item ? !!item.InsuranceTeam : false;
-  $("#af-implmgr").value = (item && item.ImplementationManager) || "";
+  fillLookupSelect($("#af-implmgr"), state.implmanagers, item ? item.ImplementationManagerLookupId : "", "Select…");
+  fillLookupSelect($("#af-loading"), state.loadingdiscounts, item ? item.LoadingDiscountLookupId : "", "None");
   $("#af-expected").value = (item && item.ExpectedCommission !== null && item.ExpectedCommission !== undefined) ? item.ExpectedCommission : "";
   $("#af-received").value = (item && item.ReceivedCommission !== null && item.ReceivedCommission !== undefined) ? item.ReceivedCommission : "";
   $("#af-paiddate").value = dateInputVal(item && item.CommissionPaidDate);
   $("#af-commnotes").value = (item && item.CommissionNotes) || "";
   $("#af-notes").value = (item && item.Notes) || "";
   $("#af-delete").hidden = !item;
+  toggleLoadingField(); // show Loading Discount only when the chosen insurer is Acenda
   // New external (non-team) application: default Expected Commission from Settings, still editable.
   if (!item && !$("#af-team").checked) {
     const fee = externalAdviserFee();
     if (fee !== null) $("#af-expected").value = fee;
   }
   openModal("app-modal");
+}
+function toggleLoadingField() {
+  $("#af-loading-field").hidden = !isAcenda($("#af-insurer").value);
 }
 /* ---------- Comments thread modal (apps + claims) ---------- */
 let commentCtx = null;
@@ -1780,7 +1855,7 @@ async function addComment() {
   const orig = btn.textContent;
   btn.disabled = true; btn.textContent = "Adding…";
   try {
-    const fields = { Comment: text };
+    const fields = { Title: truncate(text, 80), Comment: text };
     fields[commentFk(commentCtx.entity)] = Number(commentCtx.id);
     await createItem(LISTS.comments, fields);
     $("#cmt-input").value = "";
@@ -1892,7 +1967,7 @@ function confirmStatusPrompt() {
 async function quickSaveStatus(entity, id, patch, reasonComment) {
   try {
     await updateItem(LISTS[entity], id, patch);
-    if (reasonComment) await createItem(LISTS.comments, { Comment: reasonComment, ApplicationLookupId: Number(id) });
+    if (reasonComment) await createItem(LISTS.comments, { Title: truncate(reasonComment, 80), Comment: reasonComment, ApplicationLookupId: Number(id) });
     await loadList(entity);
     if (reasonComment) await loadList("comments");
     showToast("Status updated.");
@@ -2031,6 +2106,36 @@ function renderSettings() {
   renderSettingsTable();
   renderAdvisersTable();
   renderInsurersTable();
+  renderManagedTable("implmanagers");
+  renderManagedTable("loadingdiscounts");
+}
+const MANAGED = {
+  implmanagers: { title: "Implementation Manager", tbody: "implmanagers-tbody" },
+  loadingdiscounts: { title: "Loading Discount", tbody: "loadingdiscounts-tbody" }
+};
+let managedKey = null;
+function renderManagedTable(key) {
+  const cfg = MANAGED[key];
+  const rows = sortByTitle(state[key]);
+  $("#" + cfg.tbody).innerHTML = rows.length ? rows.map(x =>
+    "<tr>" +
+      '<td class="td-title">' + esc(x.Title) + "</td>" +
+      "<td>" + (isActive(x) ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-gray">Inactive</span>') + "</td>" +
+      '<td class="td-actions">' +
+        '<button class="icon-btn" data-action="edit" data-id="' + x.id + '" title="Edit">' + ICON_EDIT + "</button> " +
+        '<button class="btn btn-ghost btn-sm" data-action="toggle" data-id="' + x.id + '">' + (isActive(x) ? "Deactivate" : "Activate") + "</button>" +
+      "</td></tr>"
+  ).join("") : '<tr><td colspan="3" class="td-empty">None yet.</td></tr>';
+}
+function openManagedModal(key, item) {
+  managedKey = key;
+  const cfg = MANAGED[key];
+  $("#managed-modal-title").textContent = (item ? "Edit " : "New ") + cfg.title;
+  $("#mgf-label").textContent = cfg.title + " name *";
+  $("#mgf-id").value = item ? item.id : "";
+  $("#mgf-title").value = (item && item.Title) || "";
+  $("#mgf-active").checked = item ? isActive(item) : true;
+  openModal("managed-modal");
 }
 function renderSettingsTable() {
   const rows = sortByTitle(state.settings);
@@ -2172,7 +2277,7 @@ $("#status-confirm").addEventListener("click", confirmStatusPrompt);
 
 /* --- Applications events --- */
 $("#btn-add-application").addEventListener("click", () => openAppModal(null));
-["app-search", "app-filter-adviser", "app-filter-insurer"].forEach(id => {
+["app-search", "app-filter-adviser", "app-filter-insurer", "app-filter-loading"].forEach(id => {
   const el = document.getElementById(id);
   const handler = () => { saveFilters("applications"); renderApplicationsTable(); };
   el.addEventListener("input", handler);
@@ -2186,7 +2291,7 @@ $("#app-fy").addEventListener("change", () => {
   renderApplicationsTable();
 });
 $("#app-clear-filters").addEventListener("click", () => {
-  ["app-search", "app-filter-adviser", "app-filter-insurer"].forEach(id => { document.getElementById(id).value = ""; });
+  ["app-search", "app-filter-adviser", "app-filter-insurer", "app-filter-loading"].forEach(id => { document.getElementById(id).value = ""; });
   state.appFy = { mode: "all", fyStart: null };
   $("#app-fy").value = "all";
   removeLS(LS.filters("applications"));
@@ -2247,6 +2352,7 @@ $("#af-team").addEventListener("change", () => {
     if (fee !== null) $("#af-expected").value = fee;
   }
 });
+$("#af-insurer").addEventListener("change", toggleLoadingField);
 $("#app-form").addEventListener("submit", async e => {
   e.preventDefault();
   const fields = {
@@ -2257,7 +2363,8 @@ $("#app-form").addEventListener("submit", async e => {
     InsurerLookupId: $("#af-insurer").value ? Number($("#af-insurer").value) : null,
     AdviserLookupId: $("#af-adviser").value ? Number($("#af-adviser").value) : null,
     InsuranceTeam: $("#af-team").checked,
-    ImplementationManager: $("#af-implmgr").value.trim(),
+    ImplementationManagerLookupId: $("#af-implmgr").value ? Number($("#af-implmgr").value) : null,
+    LoadingDiscountLookupId: (isAcenda($("#af-insurer").value) && $("#af-loading").value) ? Number($("#af-loading").value) : null,
     Status: $("#af-status").value || null,
     ExpectedCommission: numOrNull($("#af-expected").value),
     ReceivedCommission: numOrNull($("#af-received").value),
@@ -2377,6 +2484,24 @@ $("#insurer-form").addEventListener("submit", async e => {
     Active: $("#insf-active").checked
   };
   await saveRecord("insurers", $("#insf-id").value, fields, "insurer-modal", e.target);
+});
+// Generic managed lists (Implementation Managers, Loading Discounts)
+$("#btn-add-implmgr").addEventListener("click", () => openManagedModal("implmanagers", null));
+$("#btn-add-loading").addEventListener("click", () => openManagedModal("loadingdiscounts", null));
+["implmanagers", "loadingdiscounts"].forEach(key => {
+  $("#" + MANAGED[key].tbody).addEventListener("click", async e => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const item = state[key].find(x => x.id === btn.dataset.id);
+    if (!item) return;
+    if (btn.dataset.action === "edit") openManagedModal(key, item);
+    else if (btn.dataset.action === "toggle") await toggleActive(key, item, btn);
+  });
+});
+$("#managed-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fields = { Title: $("#mgf-title").value.trim(), Active: $("#mgf-active").checked };
+  await saveRecord(managedKey, $("#mgf-id").value, fields, "managed-modal", e.target);
 });
 
 /* --- Auth events --- */
