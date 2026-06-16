@@ -881,8 +881,8 @@ function isActive(x) { return !(x.Active === false || x.Active === 0 || x.Active
 function friendly(err) {
   const m = err && err.message ? err.message : String(err);
   if (/Failed to fetch|NetworkError/i.test(m)) return "Network error. Check your connection and try again.";
-  if (/^40[13]/.test(m)) return "You don't have permission to do that in SharePoint.";
-  if (/^404/.test(m)) return "Item or list not found in SharePoint.";
+  if (/\b40[13]\b/.test(m)) return "You don't have permission to do that in SharePoint.";
+  if (/\b404\b|itemNotFound|invalidRequest/i.test(m)) return "Not found in SharePoint — check the list name exists. " + m;
   return "Something went wrong. " + m;
 }
 function ymd(v) { return v ? String(v).slice(0, 10) : ""; }
@@ -1197,7 +1197,13 @@ function deleteItem(listName, id) {
 
 /* ================= Data layer ================= */
 async function loadList(key) {
-  const items = await fetchAllItems(LISTS[key]);
+  let items;
+  try {
+    items = await fetchAllItems(LISTS[key]);
+  } catch (err) {
+    // surface WHICH list failed so a missing/renamed list is easy to pinpoint
+    throw new Error('List "' + LISTS[key] + '" — ' + (err && err.message ? err.message : String(err)));
+  }
   // _created / _author come from the list item itself (SharePoint built-ins), not fields
   state[key] = items.map(it => Object.assign({
     id: String(it.id),
@@ -1206,7 +1212,16 @@ async function loadList(key) {
   }, it.fields));
 }
 async function loadAll() {
-  await Promise.all(Object.keys(LISTS).map(loadList));
+  // Core lists must exist; if any fail the error names the offending list
+  const core = ["advisers", "insurers", "settings", "applications", "claims"];
+  await Promise.all(core.map(loadList));
+  // Comments is optional — a missing list shouldn't block the whole app
+  try {
+    await loadList("comments");
+  } catch (err) {
+    state.comments = [];
+    console.warn("Comments list unavailable — comment features stay empty until it exists.", err.message);
+  }
 }
 /* ---------- Comments (shared by applications + claims) ---------- */
 function commentFk(entity) { return entity === "claims" ? "ClaimLookupId" : "ApplicationLookupId"; }
