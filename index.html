@@ -3,60 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0c1f36">
-<title>Insurance Tracker — Coastal Advice Group</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%2316b377' d='M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5z'/></svg>">
+<meta name="theme-color" content="#0f2433">
+<title>Insurance Tracker — Coastal Advisory</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23eba380' d='M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5z'/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://alcdn.msauth.net/browser/3.28.1/js/msal-browser.min.js"></script>
 <script>if (typeof msal === "undefined") { document.write('<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"><\/script>'); }</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap">
 <style>
+/* Halyard Display if installed locally (brand font), else Figtree fallback below */
+@font-face{font-family:"Halyard Display";font-style:normal;font-weight:400;font-display:swap;src:local("Halyard Display Book"),local("HalyardDisplay-Book"),local("Halyard Display")}
+@font-face{font-family:"Halyard Display";font-style:normal;font-weight:500 700;font-display:swap;src:local("Halyard Display Regular"),local("HalyardDisplay-Regular"),local("Halyard Display")}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none !important}
 :root{
-  --navy-950:#081526; --navy-900:#0c1f36; --navy-800:#112a47; --navy-700:#1a3a5f;
-  --green:#16b377; --green-600:#0f9d66; --green-50:#e7f7ef;
-  --bg:#f3f6fa; --card:#ffffff; --border:#e3e9f1;
-  --text:#1c2b3a; --muted:#64748b;
-  --red:#dc2626; --radius:10px;
-  --shadow:0 1px 3px rgba(12,31,54,.08), 0 4px 16px rgba(12,31,54,.06);
+  /* Coastal Advisory brand palette */
+  --navy-950:#0a1822; --navy-900:#0f2433; --navy-800:#16344a; --navy-700:#1f4560;
+  --sky:#def5ff; --sky-600:#7fb8d4;
+  --peach:#eba380; --peach-50:#fdf2ea;
+  --concrete:#e5e5e5; --accent:#3674a8;
+  --bg:#eef1f3; --card:#ffffff; --border:#dfe5e9;
+  --text:#16242f; --muted:#5d7183;
+  --ink-on-navy:#dcebf5; --ink-on-navy-dim:#8fb0c4;
+  --red:#c0392b;
+  --grad-brand:linear-gradient(170deg,#0f2433 0%,#15405c 42%,#6fa3bd 62%,#def5ff 78%,#eba380 100%);
+  /* spacing / radii / elevation / motion */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+  --radius:10px; --r-sm:6px; --r-md:10px; --r-lg:14px; --r-pill:999px;
+  --shadow:0 1px 2px rgba(15,36,51,.06), 0 4px 14px rgba(15,36,51,.06);
+  --shadow-md:0 6px 20px rgba(15,36,51,.10);
+  --shadow-lg:0 24px 64px rgba(15,36,51,.30);
+  --t-fast:.15s ease; --t-med:.25s cubic-bezier(.4,0,.2,1);
+  --font-sans:"Halyard Display","Figtree","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --track-cta:.09em; --track-label:.06em;
+  --focus:0 0 0 3px rgba(54,116,168,.35);
 }
 html,body{height:100%}
-body{font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14.5px;line-height:1.45}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:14.5px;line-height:1.45;letter-spacing:.01em;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 body.modal-open{overflow:hidden}
 button{font-family:inherit}
+::selection{background:var(--sky);color:var(--navy-900)}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:4px}
+*{scrollbar-width:thin;scrollbar-color:#c3ccd3 transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#c3ccd3;border-radius:var(--r-pill);border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#9fb0bd;background-clip:content-box}
 
 /* ---------- Sign-in ---------- */
-#signin-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy-950),var(--navy-700));display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
-.signin-card{background:#fff;border-radius:16px;padding:42px 38px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-.signin-logo{width:64px;height:64px;border-radius:16px;background:var(--green-50);color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
-.signin-card h1{font-size:22px;color:var(--navy-900);margin-bottom:4px}
-.signin-card .signin-sub{color:var(--muted);margin-bottom:24px;font-size:14px}
-.signin-note{margin-top:18px;font-size:12.5px;color:var(--muted)}
+#signin-screen{position:fixed;inset:0;background:var(--grad-brand);display:flex;align-items:center;justify-content:center;z-index:50;padding:24px}
+.signin-hero{max-width:460px;width:100%;text-align:center;color:#fff;display:flex;flex-direction:column;align-items:center}
+.signin-logo-img{width:230px;max-width:74vw;height:auto;margin-bottom:30px;filter:drop-shadow(0 6px 24px rgba(0,0,0,.35))}
+.signin-hero h1{font-size:30px;font-weight:400;letter-spacing:.005em;margin-bottom:14px}
+.signin-tagline{font-size:16px;color:var(--sky);margin-bottom:34px;font-weight:300;letter-spacing:.02em}
+#signin-btn{background:#fff;color:var(--navy-900);text-transform:uppercase;letter-spacing:var(--track-cta);font-weight:700;font-size:12.5px;padding:14px 26px;border-radius:var(--r-pill);border:none;cursor:pointer;box-shadow:0 8px 26px rgba(0,0,0,.28);transition:transform var(--t-fast),box-shadow var(--t-fast)}
+#signin-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.34)}
+.signin-note{margin-top:24px;font-size:12.5px;color:rgba(255,255,255,.78);max-width:340px;line-height:1.5}
 
 /* ---------- Loading overlay ---------- */
-#overlay{position:fixed;inset:0;background:rgba(8,21,38,.88);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;text-align:center;padding:20px}
+#overlay{position:fixed;inset:0;background:rgba(15,36,51,.92);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;text-align:center;padding:20px}
 #overlay-msg{font-size:15px;max-width:420px}
-.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:var(--green);border-radius:50%;animation:spin .9s linear infinite}
+.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.22);border-top-color:var(--peach);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---------- Layout ---------- */
 #app{display:flex;min-height:100vh}
-#sidebar{width:240px;background:var(--navy-900);color:#cdd9e8;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:47}
+#sidebar{width:240px;background:var(--navy-900);color:var(--ink-on-navy);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:47}
 #main{flex:1;margin-left:240px;padding:28px 32px;min-width:0}
-.brand{display:flex;gap:12px;align-items:center;padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
-.brand-logo{width:38px;height:38px;border-radius:10px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
-.brand-name{font-weight:600;color:#fff;font-size:15px;line-height:1.2}
-.brand-sub{font-size:11.5px;color:#8aa1ba;margin-top:2px}
-#sidebar nav{padding:14px 10px;flex:1;display:flex;flex-direction:column;gap:4px}
-.nav-link{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;background:none;border:none;color:#b7c7d8;font-size:14px;border-radius:8px;cursor:pointer;text-align:left}
-.nav-link:hover{background:rgba(255,255,255,.07);color:#fff}
-.nav-link.active{background:var(--green);color:#fff;font-weight:600}
+.brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.09)}
+.brand-logo-img{width:172px;max-width:100%;height:auto;display:block}
+.brand-sub{font-size:11px;color:var(--ink-on-navy-dim);margin-top:10px;text-transform:uppercase;letter-spacing:var(--track-label);font-weight:600}
+#sidebar nav{padding:16px 12px;flex:1;display:flex;flex-direction:column;gap:3px}
+.nav-link{display:flex;align-items:center;gap:11px;width:100%;padding:11px 13px;background:none;border:none;color:#b9cdda;font-size:14px;border-radius:var(--r-sm);cursor:pointer;text-align:left;transition:background var(--t-fast),color var(--t-fast)}
+.nav-link:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-link.active{background:rgba(222,245,255,.10);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--peach)}
 .nav-link svg{flex:none}
-.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:13px}
+.sidebar-footer{padding:16px;border-top:1px solid rgba(255,255,255,.09);font-size:13px}
 #user-name{color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#user-email{color:#8aa1ba;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#signout-btn{margin-top:10px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.25);color:#cdd9e8;border-radius:8px;padding:7px 10px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
-#signout-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+#user-email{color:var(--ink-on-navy-dim);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#signout-btn{margin-top:11px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.22);color:var(--ink-on-navy);border-radius:var(--r-sm);padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:var(--track-label);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background var(--t-fast),color var(--t-fast)}
+#signout-btn:hover{background:rgba(255,255,255,.10);color:#fff}
 
 /* ---------- Topbar (mobile) ---------- */
 #topbar{display:none}
@@ -66,75 +94,97 @@ button{font-family:inherit}
 
 /* ---------- Page header ---------- */
 .page-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
-.page-header h1{font-size:22px;color:var(--navy-900)}
-.page-actions{display:flex;gap:10px;flex-wrap:wrap}
+.page-header h1{font-size:24px;font-weight:500;color:var(--navy-900);letter-spacing:.005em}
+.page-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
 /* ---------- Buttons ---------- */
-.btn{background:var(--green);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .15s}
-.btn:hover{background:var(--green-600)}
-.btn:disabled{opacity:.6;cursor:default}
+.btn{background:var(--navy-900);color:#fff;border:none;border-radius:var(--r-sm);padding:10px 18px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:var(--track-cta);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background var(--t-fast),transform var(--t-fast),box-shadow var(--t-fast)}
+.btn:hover{background:var(--navy-800);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn:active{transform:none}
+.btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .btn-secondary{background:#fff;color:var(--navy-800);border:1px solid var(--border)}
-.btn-secondary:hover{background:#f1f5f9}
+.btn-secondary:hover{background:#f3f7f9}
 .btn-danger{background:var(--red)}
-.btn-danger:hover{background:#b91c1c}
+.btn-danger:hover{background:#9f3023}
 .btn-ghost{background:#fff;color:var(--navy-700);border:1px solid var(--border)}
-.btn-ghost:hover{background:#f1f5f9}
-.btn-sm{padding:6px 11px;font-size:12.5px}
-.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:6px;display:inline-flex;align-items:center}
-.icon-btn:hover{background:#eef2f7;color:var(--navy-800)}
-.icon-btn.danger:hover{background:#fee2e2;color:var(--red)}
+.btn-ghost:hover{background:#f3f7f9}
+.btn-sm{padding:7px 13px;font-size:11px}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:var(--r-sm);display:inline-flex;align-items:center;transition:background var(--t-fast),color var(--t-fast)}
+.icon-btn:hover{background:#eaeff3;color:var(--navy-800)}
+.icon-btn.danger:hover{background:#f8e3e1;color:var(--red)}
 
 /* ---------- Dashboard ---------- */
+.dash-range{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dash-range select,.dash-range input[type=date]{border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;font-family:inherit;background:#fff;color:var(--text)}
+.dash-range select:focus,.dash-range input:focus{outline:none;border-color:var(--accent);box-shadow:var(--focus)}
+.dash-section{display:flex;align-items:center;gap:10px;margin:6px 0 14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.dash-section:not(:first-of-type){margin-top:30px}
+.dash-section h2{font-size:15px;font-weight:600;color:var(--navy-900);text-transform:uppercase;letter-spacing:var(--track-label)}
+.dash-section-icon{width:28px;height:28px;border-radius:8px;background:var(--navy-900);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:14px;margin-bottom:22px}
-.metric-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--green)}
-.metric-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
-.metric-value{font-size:24px;font-weight:700;color:var(--navy-900)}
-.metric-money{font-size:19px}
+.metric-card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow);overflow:hidden;transition:transform var(--t-med),box-shadow var(--t-med)}
+.metric-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad-brand)}
+.metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.metric-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:var(--track-label);margin-bottom:9px}
+.metric-value{font-size:26px;font-weight:600;color:var(--navy-900);font-variant-numeric:tabular-nums;line-height:1.1}
+.metric-money{font-size:21px}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
-.chart-card h3{font-size:14.5px;color:var(--navy-800);margin-bottom:12px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:18px 20px;min-width:0}
+.chart-box canvas{max-width:100%}
+.chart-card h3{font-size:11.5px;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:var(--track-label);font-weight:600}
 .chart-card.wide{grid-column:1/-1}
 .chart-box{position:relative;height:260px}
 .no-data{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13.5px}
 
 /* ---------- Toolbar / filters ---------- */
-.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
-.t-field{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);font-weight:600}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:13px 15px;margin-bottom:16px;box-shadow:var(--shadow)}
+.t-field{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:var(--track-label)}
 .t-field .input{min-width:130px}
 .t-field.grow{flex:1;min-width:200px}
 .toolbar .btn{margin-bottom:1px}
-.count-label{margin-left:auto;font-size:12.5px;color:var(--muted);align-self:center;white-space:nowrap}
+.toolbar-meta{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px;align-self:center;white-space:nowrap}
+.count-label{font-size:12.5px;color:var(--muted)}
+.toolbar-totals{font-size:12.5px;color:var(--navy-900);font-weight:600;font-variant-numeric:tabular-nums}
 
 /* ---------- Inputs ---------- */
-.input{border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);width:100%}
-.input:focus{outline:2px solid rgba(22,179,119,.3);border-color:var(--green)}
+.input{border:1px solid #c3ccd3;border-radius:var(--r-sm);padding:8px 10px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);width:100%;transition:border-color var(--t-fast),box-shadow var(--t-fast)}
+.input:focus{outline:none;box-shadow:var(--focus);border-color:var(--accent)}
 textarea.input{resize:vertical}
 .input-sm{padding:5px 8px;font-size:13px}
 
 /* ---------- Tables ---------- */
-.table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.table-wrap{overflow-x:auto}
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.table-wrap{overflow:auto;max-height:calc(100vh - 290px)}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:1080px}
 table.table-compact{min-width:560px}
-thead th{background:var(--navy-900);color:#cdd9e8;padding:10px 12px;text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+thead th{position:sticky;top:0;z-index:2;background:var(--navy-900);color:var(--ink-on-navy);padding:11px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:var(--track-label);white-space:nowrap}
+thead th[data-sort]{cursor:pointer;user-select:none}
+thead th[data-sort]:hover{background:var(--navy-800)}
+thead th .sort-ind{opacity:.45;font-size:9px;margin-left:3px}
+thead th.sorted-asc .sort-ind::after{content:"\25B2";opacity:1}
+thead th.sorted-desc .sort-ind::after{content:"\25BC";opacity:1}
+thead th.sorted-asc .sort-ind,thead th.sorted-desc .sort-ind{opacity:1;color:var(--peach)}
 td{padding:10px 12px;border-top:1px solid var(--border);vertical-align:middle}
-tbody tr:hover{background:#f6f9fc}
+tbody tr{transition:background var(--t-fast)}
+tbody tr:hover{background:rgba(222,245,255,.4)}
 .td-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 th.td-num{text-align:right}
 .td-title{font-weight:600;color:var(--navy-800)}
 .td-actions{white-space:nowrap;text-align:right}
 th.td-actions{text-align:right}
-.td-empty{text-align:center;color:var(--muted);padding:28px}
+.td-empty{text-align:center;color:var(--muted);padding:44px 20px}
+.td-empty .empty-title{font-size:14.5px;color:var(--navy-800);font-weight:600;margin-bottom:4px}
+.td-empty .empty-sub{font-size:12.5px;color:var(--muted)}
 
 /* ---------- Badges ---------- */
-.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
-.badge-green{background:#e7f7ef;color:#0f9d66}
-.badge-blue{background:#e5efff;color:#2563eb}
-.badge-amber{background:#fdf1df;color:#b45309}
-.badge-red{background:#fde8e8;color:#dc2626}
-.badge-teal{background:#dff6f3;color:#0d9488}
-.badge-gray{background:#eef1f5;color:#64748b}
-.badge-slate{background:#e2e8f0;color:#334155}
+.badge{display:inline-block;padding:3px 9px;border-radius:var(--r-pill);font-size:11.5px;font-weight:600;white-space:nowrap}
+.badge-green{background:#e6f3ed;color:#2f8662}
+.badge-blue{background:#e8f1f8;color:#3674a8}
+.badge-amber{background:#faf0e3;color:#b9762a}
+.badge-red{background:#faeae8;color:#c0392b}
+.badge-teal{background:#e3f2f1;color:#1d7f78}
+.badge-gray{background:#eef1f4;color:#6b7c8c}
+.badge-slate{background:#e4e9ee;color:#44586a}
 
 /* ---------- Settings ---------- */
 .settings-grid{display:grid;gap:18px}
@@ -143,8 +193,10 @@ th.td-actions{text-align:right}
 .card-note{font-size:12.5px;color:var(--muted);margin-top:3px;max-width:640px}
 
 /* ---------- Modals ---------- */
-.modal-overlay{position:fixed;inset:0;background:rgba(8,21,38,.55);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px}
-.modal{background:#fff;border-radius:14px;max-width:680px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,36,51,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px}
+.modal{background:#fff;border-radius:var(--r-lg);max-width:680px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:modalIn .2s cubic-bezier(.4,0,.2,1)}
+@keyframes modalIn{from{opacity:0;transform:scale(.98) translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.modal{animation:none}}
 .modal-sm{max-width:440px}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border);flex:none}
 .modal-header h2{font-size:17px;color:var(--navy-900)}
@@ -155,15 +207,130 @@ th.td-actions{text-align:right}
 .field{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--navy-700)}
 .span-2{grid-column:1/-1}
 .checkbox-field{flex-direction:row;align-items:center;gap:9px;font-size:13.5px;padding:4px 0}
-.checkbox-field input{width:16px;height:16px;accent-color:var(--green)}
+.checkbox-field input{width:16px;height:16px;accent-color:var(--navy-900)}
 
 /* ---------- Toasts ---------- */
 #toasts{position:fixed;bottom:20px;right:20px;z-index:120;display:flex;flex-direction:column;gap:10px;max-width:360px}
-.toast{padding:12px 16px;border-radius:10px;color:#fff;font-size:13.5px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:slideIn .25s ease}
-.toast-success{background:#0f9d66}
-.toast-error{background:#dc2626}
+.toast{padding:12px 16px 12px 18px;border-radius:var(--r-md);background:var(--navy-900);color:#fff;font-size:13.5px;font-weight:500;box-shadow:var(--shadow-lg);animation:slideIn .25s ease;border-left:3px solid var(--sky-600)}
+.toast-success{border-left-color:#2f8662}
+.toast-error{border-left-color:#c0392b}
 .toast-out{opacity:0;transform:translateY(8px);transition:all .3s}
 @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ---------- Skeletons ---------- */
+.skeleton{position:relative;overflow:hidden;background:#e6ebef;border-radius:var(--r-sm)}
+.skeleton::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);transform:translateX(-100%);animation:shimmer 1.3s infinite}
+@keyframes shimmer{100%{transform:translateX(100%)}}
+.sk-card{height:96px;border-radius:var(--r-lg)}
+.sk-line{height:13px;margin:6px 0}
+@media(prefers-reduced-motion:reduce){.skeleton::after{animation:none}.spinner{animation-duration:2s}}
+
+/* ---------- Stage tabs ---------- */
+.stage-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:6px;box-shadow:var(--shadow)}
+.stage-tab{flex:1;min-width:130px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 12px;background:none;border:none;border-radius:var(--r-md);cursor:pointer;color:var(--muted);transition:background var(--t-fast),color var(--t-fast)}
+.stage-tab:hover{background:#f1f5f8}
+.stage-tab .st-label{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:var(--track-label);white-space:nowrap}
+.stage-tab .st-count{font-size:19px;font-weight:700;color:var(--navy-900);font-variant-numeric:tabular-nums}
+.stage-tab.active{background:var(--navy-900);color:#fff}
+.stage-tab.active .st-count{color:#fff}
+.stage-tab.active::after{content:"";height:2px;width:26px;background:var(--peach);border-radius:2px}
+
+/* ---------- Comment cell ---------- */
+.td-comment{max-width:260px;color:var(--text)}
+.td-comment .cmt-snippet{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.td-comment .cmt-none{color:var(--muted)}
+.cmt-btn{position:relative}
+.cmt-badge{position:absolute;top:-3px;right:-3px;background:var(--peach);color:var(--navy-900);font-size:9.5px;font-weight:700;min-width:15px;height:15px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* ---------- Inline status select ---------- */
+.status-select{font-family:inherit;font-size:12px;font-weight:600;padding:4px 22px 4px 9px;border-radius:var(--r-pill);border:1px solid transparent;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23667' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center}
+.status-select:focus{outline:none;box-shadow:var(--focus)}
+.ss-blue{background-color:#e8f1f8;color:#3674a8}
+.ss-amber{background-color:#faf0e3;color:#b9762a}
+.ss-slate{background-color:#e4e9ee;color:#44586a}
+.ss-teal{background-color:#e3f2f1;color:#1d7f78}
+.ss-green{background-color:#e6f3ed;color:#2f8662}
+.ss-gray{background-color:#eef1f4;color:#6b7c8c}
+.ss-red{background-color:#faeae8;color:#c0392b}
+
+/* ---------- Comments thread modal ---------- */
+.thread{display:flex;flex-direction:column;gap:12px;max-height:46vh;overflow-y:auto;padding-right:4px}
+.thread-empty{color:var(--muted);text-align:center;padding:24px 0;font-size:13.5px}
+.cmt{background:#f4f7fa;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:10px 12px}
+.cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--muted);margin-bottom:4px}
+.cmt-author{font-weight:600;color:var(--navy-800)}
+.cmt-text{font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.thread-compose{display:flex;flex-direction:column;gap:8px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
+.modal-footer.split{justify-content:space-between}
+
+/* ============ Premium glass polish ============ */
+:root{
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --glass-bg:rgba(255,255,255,.72);
+  --glass-brd:rgba(255,255,255,.7);
+  --shadow-glass:0 10px 34px rgba(15,36,51,.11), 0 2px 8px rgba(15,36,51,.05);
+}
+html{scroll-behavior:smooth}
+/* Ambient brand-tinted depth behind the floating glass surfaces */
+body{
+  background:
+    radial-gradient(1100px 560px at 100% -8%, rgba(222,245,255,.55), transparent 60%),
+    radial-gradient(820px 520px at -8% 112%, rgba(235,163,128,.16), transparent 55%),
+    var(--bg);
+  background-attachment:fixed;
+}
+/* Glass surfaces — translucent, blurred, floating */
+.metric-card,.chart-card,.toolbar,.table-card,.stage-tabs{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:blur(16px) saturate(1.1);
+  backdrop-filter:blur(16px) saturate(1.1);
+  border:1px solid var(--glass-brd);
+  box-shadow:var(--shadow-glass);
+}
+.metric-card{transition:transform .28s var(--ease-spring),box-shadow .28s ease}
+.metric-card:hover{transform:translateY(-3px)}
+.chart-card{transition:transform .28s var(--ease-spring),box-shadow .28s ease}
+.chart-card:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(15,36,51,.13)}
+/* Premium sidebar finish */
+#sidebar{background:linear-gradient(180deg,#0c1d2c 0%,#0f2433 52%,#112a3d 100%);box-shadow:1px 0 0 rgba(255,255,255,.04),18px 0 44px rgba(8,21,38,.20)}
+.brand{position:relative}
+.brand::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.20),transparent)}
+.nav-link{position:relative;overflow:hidden;transition:background var(--t-fast),color var(--t-fast),transform var(--t-fast)}
+.nav-link:active{transform:scale(.98)}
+.nav-link.active{background:linear-gradient(90deg,rgba(222,245,255,.18),rgba(222,245,255,.05))}
+/* Premium buttons */
+.btn{position:relative;overflow:hidden;transition:background var(--t-fast),transform .12s var(--ease-spring),box-shadow var(--t-fast)}
+.btn:not(.btn-secondary):not(.btn-ghost):not(.btn-danger){
+  background:linear-gradient(180deg,#1a405b,#0f2433);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 6px 16px rgba(15,36,51,.20);
+}
+.btn:not(.btn-secondary):not(.btn-ghost):not(.btn-danger):hover{background:linear-gradient(180deg,#22506f,#15344a);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 22px rgba(15,36,51,.26)}
+.btn:active{transform:scale(.97)}
+.btn-secondary,.btn-ghost{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.25;transform:scale(0);animation:ripple .6s ease-out;pointer-events:none}
+@keyframes ripple{to{transform:scale(2.4);opacity:0}}
+/* Glassier modals + toasts */
+.modal-overlay{-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px)}
+.modal{background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(22px) saturate(1.1);backdrop-filter:blur(22px) saturate(1.1)}
+.toast{background:rgba(15,36,51,.84);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);border-left:3px solid var(--sky-600)}
+.toast-success{border-left-color:#2f8662}.toast-error{border-left-color:#c0392b}
+/* Stage tabs — glass segmented island */
+.stage-tabs{border-radius:var(--r-pill)}
+.stage-tab{transition:background .25s var(--ease-spring),color .2s ease,transform .15s var(--ease-spring)}
+.stage-tab:active{transform:scale(.98)}
+.stage-tab.active{background:linear-gradient(180deg,#1a405b,#0f2433);box-shadow:0 4px 14px rgba(15,36,51,.22)}
+/* Motion */
+@media (prefers-reduced-motion: no-preference){
+  .page{animation:pageIn .3s ease both}
+  @keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .cards .metric-card{animation:cardIn .36s var(--ease-spring) both}
+  .cards .metric-card:nth-child(2){animation-delay:.05s}
+  .cards .metric-card:nth-child(3){animation-delay:.10s}
+  .cards .metric-card:nth-child(4){animation-delay:.15s}
+  .cards .metric-card:nth-child(5){animation-delay:.20s}
+  .cards .metric-card:nth-child(6){animation-delay:.25s}
+  @keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+}
 
 /* ---------- Responsive ---------- */
 @media(max-width:900px){
@@ -173,6 +340,8 @@ th.td-actions{text-align:right}
   #main{margin-left:0;padding:74px 14px 24px}
   .charts-grid{grid-template-columns:1fr}
   table{min-width:860px}
+  .table-wrap{max-height:none}
+  .toolbar-meta{margin-left:0;align-items:flex-start;width:100%}
 }
 @media(max-width:640px){
   .form-grid{grid-template-columns:1fr}
@@ -184,13 +353,11 @@ th.td-actions{text-align:right}
 
 <!-- Sign-in screen -->
 <div id="signin-screen" hidden>
-  <div class="signin-card">
-    <div class="signin-logo">
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    </div>
+  <div class="signin-hero">
+    <img class="signin-logo-img" src="CAA_White.png" alt="Coastal Advisory">
     <h1>Insurance Tracker</h1>
-    <p class="signin-sub">Coastal Advice Group</p>
-    <button id="signin-btn" class="btn" style="width:100%;justify-content:center">Sign in with Microsoft</button>
+    <p class="signin-tagline">Plan everything. Regret nothing.</p>
+    <button id="signin-btn">Sign in with Microsoft</button>
     <p class="signin-note">Uses your Microsoft 365 account to read and update insurance data in SharePoint.</p>
   </div>
 </div>
@@ -214,13 +381,8 @@ th.td-actions{text-align:right}
 
   <aside id="sidebar">
     <div class="brand">
-      <div class="brand-logo">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      </div>
-      <div>
-        <div class="brand-name">Insurance Tracker</div>
-        <div class="brand-sub">Coastal Advice Group</div>
-      </div>
+      <img class="brand-logo-img" src="CAA_White.png" alt="Coastal Advisory">
+      <div class="brand-sub">Insurance Tracker</div>
     </div>
     <nav>
       <button class="nav-link active" data-page="dashboard">
@@ -257,13 +419,22 @@ th.td-actions{text-align:right}
       <div class="page-header">
         <h1>Dashboard</h1>
         <div class="page-actions">
+          <div class="dash-range">
+            <select id="dash-fy" class="input" aria-label="Period"></select>
+            <input type="date" id="dash-from" class="input" aria-label="From" hidden>
+            <input type="date" id="dash-to" class="input" aria-label="To" hidden>
+          </div>
           <button class="btn btn-ghost btn-sm" data-refresh>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             Refresh
           </button>
         </div>
       </div>
-      <div class="cards" id="dash-cards"></div>
+      <div class="dash-section">
+        <span class="dash-section-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        <h2>Applications</h2>
+      </div>
+      <div class="cards" id="dash-app-cards"></div>
       <div class="charts-grid">
         <div class="chart-card">
           <h3>Applications by Insurer</h3>
@@ -274,6 +445,10 @@ th.td-actions{text-align:right}
           <div class="chart-box"><canvas id="chartAdviser"></canvas><div class="no-data" hidden>No data yet</div></div>
         </div>
         <div class="chart-card wide">
+          <h3>Expected vs Received Commission by Month</h3>
+          <div class="chart-box"><canvas id="chartCommCompare"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card wide">
           <h3>Received Commission by Month</h3>
           <div class="chart-box"><canvas id="chartMonth"></canvas><div class="no-data" hidden>No data yet</div></div>
         </div>
@@ -281,9 +456,25 @@ th.td-actions{text-align:right}
           <h3>Applications by Status</h3>
           <div class="chart-box"><canvas id="chartStatus"></canvas><div class="no-data" hidden>No data yet</div></div>
         </div>
+      </div>
+
+      <div class="dash-section">
+        <span class="dash-section-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        <h2>Claims</h2>
+      </div>
+      <div class="cards" id="dash-claim-cards"></div>
+      <div class="charts-grid">
         <div class="chart-card">
           <h3>Claims by Claim Status</h3>
           <div class="chart-box"><canvas id="chartClaims"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Claims by Type</h3>
+          <div class="chart-box"><canvas id="chartClaimType"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Benefits Paid by Type</h3>
+          <div class="chart-box"><canvas id="chartBenefitsType"></canvas><div class="no-data" hidden>No data yet</div></div>
         </div>
       </div>
     </section>
@@ -303,24 +494,23 @@ th.td-actions{text-align:right}
           </button>
         </div>
       </div>
+      <div class="stage-tabs" id="app-stage-tabs"></div>
       <div class="toolbar">
         <label class="t-field grow"><span>Search</span><input id="app-search" class="input" type="search" placeholder="Search applications…"></label>
-        <label class="t-field"><span>Status</span><select id="app-filter-status" class="input"></select></label>
+        <label class="t-field"><span>Financial Year</span><select id="app-fy" class="input"></select></label>
         <label class="t-field"><span>Adviser</span><select id="app-filter-adviser" class="input"></select></label>
         <label class="t-field"><span>Insurer</span><select id="app-filter-insurer" class="input"></select></label>
-        <label class="t-field"><span>Insurance Team</span><select id="app-filter-team" class="input"><option value="">All</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-        <label class="t-field"><span>Submitted From</span><input id="app-filter-from" type="date" class="input"></label>
-        <label class="t-field"><span>Submitted To</span><input id="app-filter-to" type="date" class="input"></label>
         <button id="app-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
-        <span class="count-label" id="app-count"></span>
+        <button id="app-export-csv" class="btn btn-ghost btn-sm">Export CSV</button>
+        <div class="toolbar-meta">
+          <span class="count-label" id="app-count"></span>
+          <span class="toolbar-totals" id="app-totals"></span>
+        </div>
       </div>
       <div class="table-card">
         <div class="table-wrap">
           <table>
-            <thead><tr>
-              <th>Title</th><th>Client Type</th><th>Submitted</th><th>Completed</th><th>Insurer</th><th>Adviser</th><th>Team</th><th>Status</th>
-              <th class="td-num">Expected Comm.</th><th class="td-num">Received Comm.</th><th>Comm. Paid</th><th class="td-actions">Actions</th>
-            </tr></thead>
+            <thead id="applications-thead"></thead>
             <tbody id="applications-tbody"></tbody>
           </table>
         </div>
@@ -342,22 +532,23 @@ th.td-actions{text-align:right}
           </button>
         </div>
       </div>
+      <div class="stage-tabs" id="claim-stage-tabs"></div>
       <div class="toolbar">
         <label class="t-field grow"><span>Search</span><input id="claim-search" class="input" type="search" placeholder="Search claims…"></label>
-        <label class="t-field"><span>Claim Status</span><select id="claim-filter-status" class="input"></select></label>
         <label class="t-field"><span>Adviser</span><select id="claim-filter-adviser" class="input"></select></label>
         <label class="t-field"><span>Insurer</span><select id="claim-filter-insurer" class="input"></select></label>
         <label class="t-field"><span>Claim Type</span><select id="claim-filter-type" class="input"></select></label>
         <button id="claim-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
-        <span class="count-label" id="claim-count"></span>
+        <button id="claim-export-csv" class="btn btn-ghost btn-sm">Export CSV</button>
+        <div class="toolbar-meta">
+          <span class="count-label" id="claim-count"></span>
+          <span class="toolbar-totals" id="claim-totals"></span>
+        </div>
       </div>
       <div class="table-card">
         <div class="table-wrap">
           <table>
-            <thead><tr>
-              <th>Title</th><th>Linked Application</th><th>Adviser</th><th>Insurer</th><th>Claim Type</th><th>Claim Status</th><th>Lodged</th>
-              <th class="td-num">Benefit</th><th class="td-num">Monthly Benefit</th><th class="td-num">Total Paid</th><th class="td-actions">Actions</th>
-            </tr></thead>
+            <thead id="claims-thead"></thead>
             <tbody id="claims-tbody"></tbody>
           </table>
         </div>
@@ -454,11 +645,32 @@ th.td-actions{text-align:right}
           <label class="field span-2"><span>Notes</span><textarea id="af-notes" class="input" rows="3"></textarea></label>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer split">
+        <button type="button" class="btn btn-danger" id="af-delete" hidden>Delete</button>
+        <span style="flex:1"></span>
         <button type="button" class="btn btn-secondary" data-close>Cancel</button>
         <button type="submit" class="btn">Save Application</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ===== Comments thread modal ===== -->
+<div class="modal-overlay" id="comments-modal" hidden>
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="comments-modal-title">Comments</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="thread" id="comments-thread"></div>
+      <div class="thread-compose">
+        <textarea id="cmt-input" class="input" rows="2" placeholder="Add a comment…" maxlength="2000"></textarea>
+        <div style="display:flex;justify-content:flex-end">
+          <button type="button" class="btn" id="cmt-add">Add Comment</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -474,7 +686,6 @@ th.td-actions{text-align:right}
       <div class="modal-body">
         <div class="form-grid">
           <label class="field span-2"><span>Title *</span><input id="cf-title" class="input" required maxlength="255"></label>
-          <label class="field span-2"><span>Linked Application</span><select id="cf-linkedapp" class="input"></select></label>
           <label class="field"><span>Adviser</span><select id="cf-adviser" class="input"></select></label>
           <label class="field"><span>Insurer</span><select id="cf-insurer" class="input"></select></label>
           <label class="field"><span>Claim Type</span><select id="cf-claimtype" class="input"></select></label>
@@ -487,10 +698,14 @@ th.td-actions{text-align:right}
           <label class="field"><span>Last Payment Date</span><input type="date" id="cf-lastpay" class="input"></label>
           <label class="field"><span>Total Paid (AUD)</span><input type="number" step="any" id="cf-totalpaid" class="input"></label>
           <div class="field"></div>
+          <label class="field"><span>Claim Management Fee (AUD)</span><input type="number" step="any" id="cf-mgmtfee" class="input"></label>
+          <label class="field"><span>Fee Paid Date</span><input type="date" id="cf-feepaid" class="input"></label>
           <label class="field span-2"><span>Notes</span><textarea id="cf-notes" class="input" rows="3"></textarea></label>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer split">
+        <button type="button" class="btn btn-danger" id="cf-delete" hidden>Delete</button>
+        <span style="flex:1"></span>
         <button type="button" class="btn btn-secondary" data-close>Cancel</button>
         <button type="submit" class="btn">Save Claim</button>
       </div>
@@ -545,6 +760,21 @@ th.td-actions{text-align:right}
   </div>
 </div>
 
+<!-- ===== Status change prompt modal ===== -->
+<div class="modal-overlay" id="status-modal" hidden>
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 id="status-modal-title">Update Status</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body"><div class="form-grid" id="status-modal-fields"></div></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="button" class="btn" id="status-confirm">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Confirm modal ===== -->
 <div class="modal-overlay" id="confirm-modal" hidden>
   <div class="modal modal-sm">
@@ -570,24 +800,57 @@ const MSAL_CLIENT_ID = "21c75153-acd5-4ecc-9f8a-d7a2160c249e";
 const TENANT = "coastaladvicegroup";
 const SCOPES = ["https://graph.microsoft.com/Sites.ReadWrite.All", "User.Read"];
 const GRAPH_LISTS_BASE = "https://graph.microsoft.com/v1.0/sites/coastaladvicegroup.sharepoint.com:/sites/PowerApp:/lists/";
-const LISTS = { advisers: "Advisers", insurers: "Insurers", settings: "Settings", applications: "Applications", claims: "Claims" };
-const APP_STATUSES = ["In Progress", "Submitted", "Accepted", "Declined", "On Risk", "Lapsed"];
-const CLAIM_STATUSES = ["Lodged", "Assessing", "Approved", "Declined", "Withdrawn", "Closed"];
-const CLAIM_TYPES = ["Lump Sum", "Monthly Benefit", "Reimbursement", "Other"];
+const LISTS = { advisers: "Advisers", insurers: "Insurers", settings: "Settings", applications: "Applications", claims: "Claims", comments: "Comments" };
+const APP_STATUSES = ["Submitted", "In Progress", "On Hold", "Completed", "Paid", "Did Not Complete", "Declined"];
+// Application lifecycle stages, derived from Status
+const APP_STAGES = [
+  { key: "active", label: "Active", statuses: ["Submitted", "In Progress", "On Hold"], comm: "expected" },
+  { key: "completed", label: "Completed", statuses: ["Completed"], comm: "expected" },
+  { key: "paid", label: "Completed & Paid", statuses: ["Paid"], comm: "received" },
+  { key: "dnc", label: "Did Not Complete", statuses: ["Did Not Complete", "Declined"], comm: "none" }
+];
+function appStageOf(a) {
+  const hit = APP_STAGES.find(s => s.statuses.indexOf(a.Status) >= 0);
+  return hit ? hit.key : "active";
+}
+function stageDef(key) { return APP_STAGES.find(s => s.key === key) || APP_STAGES[0]; }
+const CLAIM_STATUSES = ["Lodged", "Assessing", "Approved", "Paid", "Withdrawn", "Declined", "Closed"];
+const CLAIM_TYPES = ["Life", "TPD", "Trauma", "Income Protection", "Business", "Other"];
+// Claim lifecycle stages, derived from ClaimStatus
+const CLAIM_STAGES = [
+  { key: "inprogress", label: "In Progress", statuses: ["Lodged", "Assessing"] },
+  { key: "completed", label: "Completed", statuses: ["Approved", "Paid"] },
+  { key: "dnc", label: "Did Not Complete", statuses: ["Withdrawn", "Declined", "Closed"] }
+];
+function claimStageOf(c) {
+  const hit = CLAIM_STAGES.find(s => s.statuses.indexOf(c.ClaimStatus) >= 0);
+  return hit ? hit.key : "inprogress";
+}
+function claimStageDef(key) { return CLAIM_STAGES.find(s => s.key === key) || CLAIM_STAGES[0]; }
 const CLIENT_TYPES = ["New", "Existing"];
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const STATUS_BADGE = { "In Progress": "badge-amber", "Submitted": "badge-blue", "Accepted": "badge-green", "Declined": "badge-red", "On Risk": "badge-teal", "Lapsed": "badge-gray" };
-const CLAIM_BADGE = { "Lodged": "badge-blue", "Assessing": "badge-amber", "Approved": "badge-green", "Declined": "badge-red", "Withdrawn": "badge-gray", "Closed": "badge-slate" };
-const STATUS_COLORS = { "In Progress": "#d97706", "Submitted": "#2563eb", "Accepted": "#16b377", "Declined": "#dc2626", "On Risk": "#0d9488", "Lapsed": "#94a3b8" };
-const CLAIM_STATUS_COLORS = { "Lodged": "#2563eb", "Assessing": "#d97706", "Approved": "#16b377", "Declined": "#dc2626", "Withdrawn": "#94a3b8", "Closed": "#475569" };
-const PIE_COLORS = ["#16b377", "#1a3a5f", "#2563eb", "#d97706", "#dc2626", "#0d9488", "#7c3aed", "#64748b", "#0ea5e9", "#a3e635"];
+const STATUS_BADGE = { "Submitted": "badge-blue", "In Progress": "badge-amber", "On Hold": "badge-slate", "Completed": "badge-teal", "Paid": "badge-green", "Did Not Complete": "badge-gray", "Declined": "badge-red" };
+const CLAIM_BADGE = { "Lodged": "badge-blue", "Assessing": "badge-amber", "Approved": "badge-teal", "Paid": "badge-green", "Withdrawn": "badge-gray", "Declined": "badge-red", "Closed": "badge-slate" };
+const STATUS_COLORS = { "Submitted": "#3674a8", "In Progress": "#b9762a", "On Hold": "#6b7c8c", "Completed": "#1d7f78", "Paid": "#2f8662", "Did Not Complete": "#94a3b8", "Declined": "#c0392b" };
+const CLAIM_STATUS_COLORS = { "Lodged": "#3674a8", "Assessing": "#b9762a", "Approved": "#1d7f78", "Paid": "#2f8662", "Withdrawn": "#6b7c8c", "Declined": "#c0392b", "Closed": "#44586a" };
+const CLAIM_TYPE_COLORS = { "Life": "#0f2433", "TPD": "#3674a8", "Trauma": "#eba380", "Income Protection": "#1d7f78", "Business": "#b9762a", "Other": "#6b7c8c" };
+const PIE_COLORS = ["#0f2433", "#3674a8", "#eba380", "#7fb8d4", "#2f8662", "#b9762a", "#6b7c8c", "#c0392b", "#1d7f78", "#44586a"];
+// Brand chart palette
+const C_NAVY = "#0f2433", C_STEEL = "#3674a8", C_NAVY_SOFT = "#16344a", C_PEACH = "#eba380", C_SKY = "#7fb8d4";
+const CHART_GRID = "#e6ebee", CHART_TICK = "#5d7183";
 
-const state = { advisers: [], insurers: [], settings: [], applications: [], claims: [], account: null };
+const state = { advisers: [], insurers: [], settings: [], applications: [], claims: [], comments: [], account: null,
+  appStage: "active", claimStage: "inprogress",
+  appFy: { mode: "all", fyStart: null },
+  dash: { mode: "fy", fyStart: null, from: "", to: "" },
+  sort: { applications: { key: "SubmissionDate", dir: "desc" }, claims: { key: "LodgementDate", dir: "desc" } } };
 const charts = {};
 let currentPage = "dashboard";
 let msalApp = null;
 let confirmResolve = null;
+const filtersRestored = { applications: false, claims: false };
+const LS = { filters: p => "insTracker.filters." + p, sort: p => "insTracker.sort." + p, dash: "insTracker.dashRange" };
 
 /* ================= Utils ================= */
 const $ = (sel, root) => (root || document).querySelector(sel);
@@ -622,6 +885,207 @@ function friendly(err) {
   if (/^404/.test(m)) return "Item or list not found in SharePoint.";
   return "Something went wrong. " + m;
 }
+function ymd(v) { return v ? String(v).slice(0, 10) : ""; }
+function todayStr() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+/* ---------- Financial year / date range (AU FY: 1 Jul – 30 Jun) ---------- */
+function currentFyStart() {
+  const d = new Date();
+  return d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1; // month 6 = July
+}
+function fyLabel(y) { return "FY " + y + "–" + String(y + 1).slice(2); }
+function fyBounds(y) { return { from: y + "-07-01", to: (y + 1) + "-06-30" }; }
+function dashBounds() {
+  const d = state.dash;
+  if (d.mode === "all") return null;
+  if (d.mode === "custom") {
+    if (!d.from && !d.to) return null;
+    return { from: d.from || "0000-01-01", to: d.to || "9999-12-31" };
+  }
+  return fyBounds(d.fyStart === null ? currentFyStart() : d.fyStart);
+}
+function inRange(dateStr, bounds) {
+  if (!bounds) return true;
+  const s = ymd(dateStr);
+  if (!s) return false;
+  return s >= bounds.from && s <= bounds.to;
+}
+// All FY start-years present in the data, descending
+function fyListFromData() {
+  const years = new Set();
+  const consider = s => { const y = Number(ymd(s).slice(0, 4)); if (y) years.add(ymd(s) >= y + "-07-01" ? y : y - 1); };
+  state.applications.forEach(a => { consider(a.SubmissionDate); consider(a.CommissionPaidDate); });
+  state.claims.forEach(c => consider(c.LodgementDate));
+  years.add(currentFyStart());
+  return Array.from(years).filter(Boolean).sort((a, b) => b - a);
+}
+// Month keys "YYYY-MM" spanning the active range (fixed Jul→Jun for an FY)
+function monthKeysForRange(bounds) {
+  const keys = [];
+  if (state.dash.mode === "fy") {
+    const y = state.dash.fyStart === null ? currentFyStart() : state.dash.fyStart;
+    for (let m = 7; m <= 12; m++) keys.push(y + "-" + String(m).padStart(2, "0"));
+    for (let m = 1; m <= 6; m++) keys.push((y + 1) + "-" + String(m).padStart(2, "0"));
+    return keys;
+  }
+  // derive from data within bounds
+  const set = new Set();
+  const add = s => { const k = ymd(s).slice(0, 7); if (k && inRange(s, bounds)) set.add(k); };
+  state.applications.forEach(a => { add(a.CompletionDate); add(a.CommissionPaidDate); });
+  return Array.from(set).sort();
+}
+function monthLabel(k) { const p = k.split("-"); return MONTH_NAMES[Number(p[1]) - 1] + " " + p[0]; }
+
+/* ---------- Count-up animation ---------- */
+function animateValue(el, target, fmtFn) {
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || !target) { el.textContent = fmtFn(target); return; }
+  const dur = 600, t0 = performance.now();
+  function step(now) {
+    const p = Math.min(1, (now - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmtFn(target * eased);
+    if (p < 1) requestAnimationFrame(step); else el.textContent = fmtFn(target);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ---------- Chart.js centre-text plugin (canvas can't read CSS vars) ---------- */
+const centerTextPlugin = {
+  id: "centerText",
+  afterDraw(chart) {
+    const cfg = chart.config.options.plugins && chart.config.options.plugins.centerText;
+    if (!cfg || !cfg.text) return;
+    const { ctx, chartArea } = chart;
+    const cx = (chartArea.left + chartArea.right) / 2, cy = (chartArea.top + chartArea.bottom) / 2;
+    ctx.save();
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0f2433";
+    ctx.font = "600 22px " + CHART_FONT;
+    ctx.fillText(cfg.text, cx, cy - 4);
+    if (cfg.sub) { ctx.fillStyle = "#5d7183"; ctx.font = "500 11px " + CHART_FONT; ctx.fillText(cfg.sub, cx, cy + 15); }
+    ctx.restore();
+  }
+};
+const CHART_FONT = '"Figtree","Segoe UI",system-ui,sans-serif';
+
+/* ---------- Grouping ---------- */
+function countByLookup(arr, field, cacheKey) {
+  const m = new Map();
+  arr.forEach(x => {
+    const id = x[field + "LookupId"];
+    const key = (id === undefined || id === null || id === "") ? "" : String(id);
+    const label = key === "" ? "Unassigned" : (lookupTitle(x, field, cacheKey) || "Unassigned");
+    if (!m.has(key)) m.set(key, { label: label, count: 0 });
+    m.get(key).count++;
+  });
+  const entries = Array.from(m.entries()).sort((a, b) => b[1].count - a[1].count);
+  return { labels: entries.map(e => e[1].label), data: entries.map(e => e[1].count), keys: entries.map(e => e[0]) };
+}
+
+/* ---------- Sorting ---------- */
+const NUM_KEYS = new Set(["ExpectedCommission", "ReceivedCommission", "BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "InsuranceTeam", "DaysTaken", "ClaimManagementFee"]);
+const DATE_KEYS = new Set(["SubmissionDate", "CompletionDate", "CommissionPaidDate", "LodgementDate", "DecisionDate", "ClaimFeePaidDate"]);
+function sortKind(key) { return NUM_KEYS.has(key) ? "num" : DATE_KEYS.has(key) ? "date" : "text"; }
+function sortVal(row, key) {
+  if (key === "Insurer") return lookupTitle(row, "Insurer", "insurers").toLowerCase();
+  if (key === "Adviser") return lookupTitle(row, "Adviser", "advisers").toLowerCase();
+  if (key === "DaysTaken") { const d = daysTaken(row); return d === null ? -1 : d; }
+  if (key === "InsuranceTeam") return row.InsuranceTeam ? 1 : 0;
+  if (NUM_KEYS.has(key)) return Number(row[key]) || 0;
+  if (DATE_KEYS.has(key)) return ymd(row[key]);
+  return String(row[key] === null || row[key] === undefined ? "" : row[key]).toLowerCase();
+}
+function applySort(rows, sortState) {
+  const { key, dir } = sortState, mul = dir === "asc" ? 1 : -1, num = NUM_KEYS.has(key);
+  return rows.slice().sort((a, b) => {
+    const va = sortVal(a, key), vb = sortVal(b, key);
+    const cmp = num ? (va - vb) : (va < vb ? -1 : va > vb ? 1 : 0);
+    return cmp * mul;
+  });
+}
+function updateSortIndicators(thead, sortState) {
+  thead.querySelectorAll("th[data-sort]").forEach(th => {
+    th.classList.remove("sorted-asc", "sorted-desc");
+    if (th.dataset.sort === sortState.key) th.classList.add(sortState.dir === "asc" ? "sorted-asc" : "sorted-desc");
+  });
+}
+function bindSortableHead(thead, page, rerender) {
+  if (thead.dataset.bound) return;
+  thead.dataset.bound = "1";
+  thead.addEventListener("click", e => {
+    const th = e.target.closest("th[data-sort]");
+    if (!th) return;
+    const key = th.dataset.sort, st = state.sort[page];
+    if (st.key === key) st.dir = st.dir === "asc" ? "desc" : "asc";
+    else { st.key = key; st.dir = sortKind(key) === "text" ? "asc" : "desc"; }
+    writeLS(LS.sort(page), st);
+    rerender();
+  });
+}
+
+/* ---------- CSV export ---------- */
+function csvCell(v) {
+  let s = (v === null || v === undefined) ? "" : String(v);
+  if (/^[=+\-@]/.test(s)) s = "'" + s;            // formula-injection guard
+  if (/[",\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function downloadCSV(filename, rows) {
+  const body = rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["﻿" + body], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ---------- localStorage filter/sort persistence ---------- */
+function writeLS(key, obj) { try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {} }
+function readLS(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function removeLS(key) { try { localStorage.removeItem(key); } catch (e) {} }
+function setVal(id, v) { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; }
+function saveFilters(page) {
+  if (page === "applications") writeLS(LS.filters(page), {
+    q: $("#app-search").value, adviser: $("#app-filter-adviser").value,
+    insurer: $("#app-filter-insurer").value, fy: state.appFy
+  });
+  else writeLS(LS.filters(page), {
+    q: $("#claim-search").value, adviser: $("#claim-filter-adviser").value,
+    insurer: $("#claim-filter-insurer").value, type: $("#claim-filter-type").value
+  });
+}
+function restoreFilters(page) {
+  if (filtersRestored[page]) return;
+  filtersRestored[page] = true;
+  const f = readLS(LS.filters(page));
+  if (f) {
+    if (page === "applications") {
+      setVal("app-search", f.q); setVal("app-filter-adviser", f.adviser); setVal("app-filter-insurer", f.insurer);
+      if (f.fy && f.fy.mode) state.appFy = f.fy;
+    } else {
+      setVal("claim-search", f.q); setVal("claim-filter-adviser", f.adviser);
+      setVal("claim-filter-insurer", f.insurer); setVal("claim-filter-type", f.type);
+    }
+  }
+}
+
+/* ---------- Skeleton loaders ---------- */
+function skeletonCards(n) {
+  let h = "";
+  for (let i = 0; i < n; i++) h += '<div class="metric-card"><div class="skeleton sk-line" style="width:55%"></div><div class="skeleton sk-line" style="width:42%;height:22px;margin-top:10px"></div></div>';
+  return h;
+}
+function skeletonRows(cols, n) {
+  let h = "";
+  for (let i = 0; i < n; i++) h += '<tr><td colspan="' + cols + '"><div class="skeleton sk-line" style="width:100%"></div></td></tr>';
+  return h;
+}
 
 const ICON_EDIT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 const ICON_TRASH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
@@ -653,6 +1117,8 @@ function closeModal(id) { document.getElementById(id).hidden = true; document.bo
 function cancelModal(id) {
   closeModal(id);
   if (id === "confirm-modal" && confirmResolve) { confirmResolve(false); confirmResolve = null; }
+  // cancelling a status change must revert the inline <select> to the stored value
+  if (id === "status-modal" && statusCtx) { statusCtx = null; renderActivePage(); }
 }
 function confirmDialog(message) {
   $("#confirm-msg").textContent = message;
@@ -732,10 +1198,54 @@ function deleteItem(listName, id) {
 /* ================= Data layer ================= */
 async function loadList(key) {
   const items = await fetchAllItems(LISTS[key]);
-  state[key] = items.map(it => Object.assign({ id: String(it.id) }, it.fields));
+  // _created / _author come from the list item itself (SharePoint built-ins), not fields
+  state[key] = items.map(it => Object.assign({
+    id: String(it.id),
+    _created: it.createdDateTime || "",
+    _author: (it.createdBy && it.createdBy.user && it.createdBy.user.displayName) || ""
+  }, it.fields));
 }
 async function loadAll() {
   await Promise.all(Object.keys(LISTS).map(loadList));
+}
+/* ---------- Comments (shared by applications + claims) ---------- */
+function commentFk(entity) { return entity === "claims" ? "ClaimLookupId" : "ApplicationLookupId"; }
+function commentsFor(entity, id) {
+  const fk = commentFk(entity);
+  return state.comments
+    .filter(c => String(c[fk]) === String(id))
+    .sort((a, b) => String(a._created || "").localeCompare(String(b._created || "")));
+}
+function latestComment(entity, id) {
+  const list = commentsFor(entity, id);
+  return list.length ? list[list.length - 1] : null;
+}
+function commentCount(entity, id) { return commentsFor(entity, id).length; }
+function truncate(s, n) { s = String(s === null || s === undefined ? "" : s); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+function fmtDateTime(v) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(d)) return fmtDate(v);
+  const p = n => String(n).padStart(2, "0");
+  return p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function daysBetween(fromStr, toStr) {
+  const a = ymd(fromStr), b = ymd(toStr);
+  if (!a || !b) return null;
+  const d = Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+  return isNaN(d) ? null : d;
+}
+// Active apps: submission → today (live age). Completed/Paid: submission → completion.
+function daysTaken(a) {
+  if (a.CompletionDate) return daysBetween(a.SubmissionDate, a.CompletionDate);
+  if (a.SubmissionDate) return daysBetween(a.SubmissionDate, todayStr());
+  return null;
+}
+function daysCell(a) {
+  const d = daysTaken(a);
+  if (d === null) return '<td class="td-num"><span class="cmt-none">—</span></td>';
+  const live = !a.CompletionDate;
+  return '<td class="td-num" title="' + (live ? "Days open so far" : "Submission to completion") + '">' + d + "</td>";
 }
 // Lookup display: prefer the value Graph returns in fields, else resolve via cached list by LookupId.
 function lookupTitle(row, name, cacheKey) {
@@ -836,113 +1346,236 @@ function fillLookupSelect(sel, cache, currentId, blankLabel) {
 }
 
 /* ================= Dashboard ================= */
-function countBy(arr, fn) {
-  const m = new Map();
-  arr.forEach(x => { const k = fn(x); m.set(k, (m.get(k) || 0) + 1); });
-  const entries = Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
-  return { labels: entries.map(e => e[0]), data: entries.map(e => e[1]) };
-}
 function countByOrdered(arr, fn, order) {
   const m = new Map();
   arr.forEach(x => { const k = fn(x) || "Not set"; m.set(k, (m.get(k) || 0) + 1); });
   const labels = [], data = [];
   (order || []).forEach(k => { if (m.has(k)) { labels.push(k); data.push(m.get(k)); m.delete(k); } });
   Array.from(m.entries()).sort((a, b) => b[1] - a[1]).forEach(e => { labels.push(e[0]); data.push(e[1]); });
-  return { labels: labels, data: data };
+  return { labels: labels, data: data, keys: labels.slice() };
 }
 function drawChart(id, config, hasData) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
   const canvas = document.getElementById(id);
+  if (!canvas) return;
   const empty = canvas.parentElement.querySelector(".no-data");
   if (typeof Chart === "undefined") {
     canvas.style.display = "none";
-    empty.hidden = false;
-    empty.textContent = "Charts unavailable (Chart.js failed to load)";
+    if (empty) { empty.hidden = false; empty.textContent = "Charts unavailable (Chart.js failed to load)"; }
     return;
   }
   canvas.style.display = hasData ? "block" : "none";
-  empty.hidden = !!hasData;
+  if (empty) empty.hidden = !!hasData;
   if (!hasData) return;
   charts[id] = new Chart(canvas.getContext("2d"), config);
 }
-function drawBar(id, counts, color, money) {
+function clickHandler(counts, onSelect) {
+  if (!onSelect) return undefined;
+  return (e, els) => { if (els && els.length) onSelect(counts.keys ? counts.keys[els[0].index] : counts.labels[els[0].index], counts.labels[els[0].index]); };
+}
+function drawBar(id, counts, color, money, onSelect) {
+  const hasData = counts.labels.length > 0 && counts.data.some(v => Number(v) > 0);
   const yTicks = money
-    ? { color: "#64748b", callback: v => "$" + Number(v).toLocaleString("en-AU") }
-    : { color: "#64748b", precision: 0 };
+    ? { color: CHART_TICK, callback: v => "$" + Number(v).toLocaleString("en-AU") }
+    : { color: CHART_TICK, precision: 0 };
   drawChart(id, {
     type: "bar",
-    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: color, borderRadius: 5, maxBarThickness: 46 }] },
+    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: color, borderRadius: 4, maxBarThickness: 46 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
+      onClick: clickHandler(counts, onSelect),
+      onHover: onSelect ? (e, els) => { e.native.target.style.cursor = els.length ? "pointer" : "default"; } : undefined,
       plugins: {
         legend: { display: false },
         tooltip: money ? { callbacks: { label: c => audFmt.format(c.parsed.y) } } : {}
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: "#64748b", autoSkip: true, maxRotation: 45 } },
-        y: { beginAtZero: true, grid: { color: "#eef2f7" }, ticks: yTicks }
+        x: { grid: { display: false }, ticks: { color: CHART_TICK, autoSkip: true, maxRotation: 45 } },
+        y: { beginAtZero: true, grid: { color: CHART_GRID }, ticks: yTicks }
       }
     }
-  }, counts.labels.length > 0);
+  }, hasData);
 }
-function drawPie(id, counts, colorMap) {
-  const colors = counts.labels.map((l, i) => (colorMap && colorMap[l]) || PIE_COLORS[i % PIE_COLORS.length]);
+function drawGroupedBar(id, labels, expData, recData) {
+  const hasData = labels.length > 0 && (expData.some(v => v > 0) || recData.some(v => v > 0));
   drawChart(id, {
-    type: "pie",
-    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: colors, borderWidth: 2, borderColor: "#fff" }] },
+    type: "bar",
+    data: { labels: labels, datasets: [
+      { label: "Expected", data: expData, backgroundColor: C_PEACH, borderRadius: 4, maxBarThickness: 30 },
+      { label: "Received", data: recData, backgroundColor: C_NAVY, borderRadius: 4, maxBarThickness: 30 }
+    ] },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 14, color: "#475569" } } }
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 12, padding: 14, color: "#475569" } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ": " + audFmt.format(c.parsed.y) } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: CHART_TICK, autoSkip: true, maxRotation: 45 } },
+        y: { beginAtZero: true, grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, callback: v => "$" + Number(v).toLocaleString("en-AU") } }
+      }
     }
+  }, hasData);
+}
+function drawDoughnut(id, counts, colorMap, center, onSelect) {
+  const colors = counts.labels.map((l, i) => (colorMap && colorMap[l]) || PIE_COLORS[i % PIE_COLORS.length]);
+  drawChart(id, {
+    type: "doughnut",
+    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: colors, borderWidth: 2, borderColor: "#fff" }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "62%",
+      onClick: clickHandler(counts, onSelect),
+      onHover: onSelect ? (e, els) => { e.native.target.style.cursor = els.length ? "pointer" : "default"; } : undefined,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 12, padding: 13, color: "#475569" } },
+        centerText: center || null
+      }
+    },
+    plugins: [centerTextPlugin]
   }, counts.labels.length > 0);
 }
-function renderDashboard() {
-  const apps = state.applications, claims = state.claims;
-  const inProg = apps.filter(a => a.Status === "In Progress" || a.Status === "Submitted").length;
-  const expected = sumBy(apps, a => a.ExpectedCommission);
-  const received = sumBy(apps, a => a.ReceivedCommission);
-  const openClaims = claims.filter(c => c.ClaimStatus === "Lodged" || c.ClaimStatus === "Assessing").length;
-  const cards = [
-    { label: "Total Applications", value: apps.length },
-    { label: "Applications In Progress", value: inProg },
-    { label: "Total Expected Commission", value: audFmt.format(expected), money: true },
-    { label: "Total Received Commission", value: audFmt.format(received), money: true },
-    { label: "Commission Outstanding", value: audFmt.format(expected - received), money: true },
-    { label: "Total Claims", value: claims.length },
-    { label: "Open Claims", value: openClaims }
-  ];
-  $("#dash-cards").innerHTML = cards.map(c =>
-    '<div class="metric-card"><div class="metric-label">' + esc(c.label) + '</div><div class="metric-value' + (c.money ? " metric-money" : "") + '">' + esc(c.value) + "</div></div>"
-  ).join("");
-
-  drawBar("chartInsurer", countBy(apps, a => lookupTitle(a, "Insurer", "insurers") || "Unassigned"), "#16b377", false);
-  drawBar("chartAdviser", countBy(apps, a => lookupTitle(a, "Adviser", "advisers") || "Unassigned"), "#1a3a5f", false);
-
-  const byMonth = new Map();
-  apps.forEach(a => {
-    const amt = Number(a.ReceivedCommission) || 0;
-    const key = a.CommissionPaidDate ? String(a.CommissionPaidDate).slice(0, 7) : null;
-    if (amt && key) byMonth.set(key, (byMonth.get(key) || 0) + amt);
+function renderDashRange() {
+  const sel = $("#dash-fy");
+  if (!sel) return;
+  const fys = fyListFromData();
+  let opts = '<option value="all">All time</option>';
+  fys.forEach(y => { opts += '<option value="fy:' + y + '">' + esc(fyLabel(y)) + "</option>"; });
+  opts += '<option value="custom">Custom range…</option>';
+  sel.innerHTML = opts;
+  const d = state.dash;
+  sel.value = d.mode === "all" ? "all" : d.mode === "custom" ? "custom" : ("fy:" + (d.fyStart === null ? currentFyStart() : d.fyStart));
+  if (sel.selectedIndex < 0) sel.value = "all";
+  $("#dash-from").hidden = d.mode !== "custom";
+  $("#dash-to").hidden = d.mode !== "custom";
+  if (d.mode === "custom") { $("#dash-from").value = d.from || ""; $("#dash-to").value = d.to || ""; }
+}
+function saveDash() { writeLS(LS.dash, state.dash); }
+function restoreDash() { const d = readLS(LS.dash); if (d) Object.assign(state.dash, d); }
+function drillApplications(patch) {
+  const f = readLS(LS.filters("applications")) || {};
+  Object.assign(f, patch);
+  writeLS(LS.filters("applications"), f);
+  filtersRestored.applications = false;
+  navigate("applications");
+}
+function drillClaims(patch) {
+  const f = readLS(LS.filters("claims")) || {};
+  Object.assign(f, patch);
+  writeLS(LS.filters("claims"), f);
+  filtersRestored.claims = false;
+  navigate("claims");
+}
+function claimsByType(claims, valFn) {
+  const labels = [], data = [], keys = [];
+  CLAIM_TYPES.forEach(t => {
+    const subset = claims.filter(c => c.ClaimType === t);
+    const v = valFn(subset);
+    if (v > 0) { labels.push(t); data.push(v); keys.push(t); }
   });
-  const keys = Array.from(byMonth.keys()).sort();
-  drawBar("chartMonth", {
-    labels: keys.map(k => { const p = k.split("-"); return MONTH_NAMES[Number(p[1]) - 1] + " " + p[0]; }),
-    data: keys.map(k => byMonth.get(k))
-  }, "#0f9d66", true);
+  return { labels: labels, data: data, keys: keys };
+}
+function renderCards(containerId, cards) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = cards.map(c =>
+    '<div class="metric-card"><div class="metric-label">' + esc(c.label) + '</div><div class="metric-value' + (c.money ? " metric-money" : "") + '">' + (c.money ? audFmt.format(0) : "0") + "</div></div>"
+  ).join("");
+  const valEls = el.querySelectorAll(".metric-value");
+  cards.forEach((c, i) => animateValue(valEls[i], c.value, c.money ? (v => audFmt.format(v)) : (v => String(Math.round(v)))));
+}
+function renderDashboard() {
+  renderDashRange();
+  const bounds = dashBounds();
+  const apps = state.applications, claims = state.claims;
+  // Date-field mapping: submission → counts/status/pipeline; completion → expected recognised;
+  // commission paid → received; lodgement → claims; fee paid → claim fees.
+  const subApps = apps.filter(a => inRange(a.SubmissionDate, bounds));
+  const completedApps = apps.filter(a => inRange(a.CompletionDate, bounds));   // expected recognised at completion
+  const paidApps = apps.filter(a => inRange(a.CommissionPaidDate, bounds));
+  const rangeClaims = claims.filter(c => inRange(c.LodgementDate, bounds));
+  const active = subApps.filter(a => appStageOf(a) === "active");
+  const pipeline = sumBy(active, a => a.ExpectedCommission);
+  const expected = sumBy(completedApps, a => a.ExpectedCommission);
+  const received = sumBy(paidApps, a => a.ReceivedCommission);
+  const claimFees = sumBy(claims.filter(c => inRange(c.ClaimFeePaidDate, bounds)), c => c.ClaimManagementFee);
+  const benefitsPaid = sumBy(rangeClaims, c => c.TotalPaid);
+  const openClaims = rangeClaims.filter(c => claimStageOf(c) === "inprogress").length;
+  const appCards = [
+    { label: "Total Applications", value: subApps.length },
+    { label: "Active Applications", value: active.length },
+    { label: "Commission Pipeline", value: pipeline, money: true },
+    { label: "Expected (Completed)", value: expected, money: true },
+    { label: "Received Commission", value: received, money: true },
+    { label: "Commission Outstanding", value: expected - received, money: true }
+  ];
+  const claimCards = [
+    { label: "Total Claims", value: rangeClaims.length },
+    { label: "Open Claims", value: openClaims },
+    { label: "Total Benefits Paid", value: benefitsPaid, money: true },
+    { label: "Claim Fees Received", value: claimFees, money: true }
+  ];
+  renderCards("dash-app-cards", appCards);
+  renderCards("dash-claim-cards", claimCards);
 
-  drawPie("chartStatus", countByOrdered(apps, a => a.Status, APP_STATUSES), STATUS_COLORS);
-  drawPie("chartClaims", countByOrdered(claims, c => c.ClaimStatus, CLAIM_STATUSES), CLAIM_STATUS_COLORS);
+  drawBar("chartInsurer", countByLookup(subApps, "Insurer", "insurers"), C_NAVY_SOFT, false, k => drillApplications({ insurer: k }));
+  drawBar("chartAdviser", countByLookup(subApps, "Adviser", "advisers"), C_STEEL, false, k => drillApplications({ adviser: k }));
+
+  // Commission by month: expected keyed on COMPLETION month, received keyed on PAYMENT month
+  const months = monthKeysForRange(bounds);
+  const exp = {}, rec = {};
+  months.forEach(m => { exp[m] = 0; rec[m] = 0; });
+  apps.forEach(a => {
+    const cm = ymd(a.CompletionDate).slice(0, 7); if (exp[cm] !== undefined) exp[cm] += Number(a.ExpectedCommission) || 0;
+    const pm = ymd(a.CommissionPaidDate).slice(0, 7); if (rec[pm] !== undefined) rec[pm] += Number(a.ReceivedCommission) || 0;
+  });
+  const monthLabels = months.map(monthLabel);
+  drawGroupedBar("chartCommCompare", monthLabels, months.map(m => exp[m]), months.map(m => rec[m]));
+  drawBar("chartMonth", { labels: monthLabels, data: months.map(m => rec[m]), keys: months }, C_SKY, true);
+
+  drawDoughnut("chartStatus", countByOrdered(subApps, a => a.Status, APP_STATUSES), STATUS_COLORS,
+    { text: String(subApps.length), sub: "Applications" }, k => drillApplications({ status: k }));
+  drawDoughnut("chartClaims", countByOrdered(rangeClaims, c => c.ClaimStatus, CLAIM_STATUSES), CLAIM_STATUS_COLORS,
+    { text: String(rangeClaims.length), sub: "Claims" }, k => drillClaims({ status: k }));
+
+  // Claims by type — count + total benefits paid
+  const typeCount = claimsByType(rangeClaims, s => s.length);
+  const typeBenefits = claimsByType(rangeClaims, s => sumBy(s, x => x.TotalPaid));
+  drawBar("chartClaimType", typeCount, typeCount.labels.map(l => CLAIM_TYPE_COLORS[l] || C_STEEL), false, k => drillClaims({ type: k }));
+  drawBar("chartBenefitsType", typeBenefits, typeBenefits.labels.map(l => CLAIM_TYPE_COLORS[l] || C_STEEL), true, k => drillClaims({ type: k }));
 }
 
 /* ================= Applications ================= */
+const ICON_COMMENT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>';
 function fillAppFilterSelects() {
-  fillOptions($("#app-filter-status"), APP_STATUSES.map(s => [s, s]), "All Statuses");
   fillOptions($("#app-filter-adviser"), sortByTitle(state.advisers).map(a => [a.id, a.Title]), "All Advisers");
   fillOptions($("#app-filter-insurer"), sortByTitle(state.insurers).map(i => [i.id, i.Title]), "All Insurers");
 }
+// FY selector on the Applications list (filters by SubmissionDate)
+function appFyBounds() {
+  if (state.appFy.mode !== "fy") return null;
+  return fyBounds(state.appFy.fyStart === null ? currentFyStart() : state.appFy.fyStart);
+}
+function renderAppFy() {
+  const sel = $("#app-fy");
+  let opts = '<option value="all">All time</option>';
+  fyListFromData().forEach(y => { opts += '<option value="fy:' + y + '">' + esc(fyLabel(y)) + "</option>"; });
+  sel.innerHTML = opts;
+  sel.value = state.appFy.mode === "fy" ? ("fy:" + (state.appFy.fyStart === null ? currentFyStart() : state.appFy.fyStart)) : "all";
+  if (sel.selectedIndex < 0) sel.value = "all";
+}
+function statusSelectHTML(entity, id, current, statuses, badgeMap) {
+  const cls = (badgeMap[current] || "badge-gray").replace("badge-", "ss-");
+  return '<select class="status-select ' + cls + '" data-status-entity="' + entity + '" data-id="' + id + '">' +
+    statuses.map(s => "<option" + (s === current ? " selected" : "") + ">" + esc(s) + "</option>").join("") + "</select>";
+}
 function renderApplications() {
   fillAppFilterSelects();
+  restoreFilters("applications");
+  renderAppFy();
+  bindSortableHead($("#applications-thead"), "applications", renderApplicationsTable);
   renderApplicationsTable();
+}
+function emptyRow(cols, title, sub) {
+  return '<tr><td colspan="' + cols + '" class="td-empty"><div class="empty-title">' + esc(title) + '</div><div class="empty-sub">' + esc(sub || "") + "</div></td></tr>";
 }
 function statusBadge(s) {
   if (!s) return "";
@@ -952,53 +1585,113 @@ function claimBadge(s) {
   if (!s) return "";
   return '<span class="badge ' + (CLAIM_BADGE[s] || "badge-gray") + '">' + esc(s) + "</span>";
 }
-function appRow(a) {
-  const insurer = lookupTitle(a, "Insurer", "insurers");
-  const adviser = lookupTitle(a, "Adviser", "advisers");
-  return "<tr>" +
-    '<td class="td-title">' + esc(a.Title) + "</td>" +
-    "<td>" + esc(a.ClientType || "") + "</td>" +
-    "<td>" + fmtDate(a.SubmissionDate) + "</td>" +
-    "<td>" + fmtDate(a.CompletionDate) + "</td>" +
-    "<td>" + esc(insurer) + "</td>" +
-    "<td>" + esc(adviser) + "</td>" +
-    "<td>" + (a.InsuranceTeam ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-gray">No</span>') + "</td>" +
-    "<td>" + statusBadge(a.Status) + "</td>" +
-    '<td class="td-num">' + fmtAUD(a.ExpectedCommission) + "</td>" +
-    '<td class="td-num">' + fmtAUD(a.ReceivedCommission) + "</td>" +
-    "<td>" + fmtDate(a.CommissionPaidDate) + "</td>" +
-    '<td class="td-actions">' +
-      '<button class="icon-btn" data-action="edit" data-id="' + a.id + '" title="Edit">' + ICON_EDIT + "</button>" +
-      '<button class="icon-btn danger" data-action="delete" data-id="' + a.id + '" title="Delete">' + ICON_TRASH + "</button>" +
-    "</td></tr>";
+// Column descriptors per lifecycle stage (Active/Completed show expected; Paid shows received + date; DNC shows neither)
+function appColumns(stage) {
+  const cols = [
+    { key: "Title", label: "Title", sortable: true, render: a => '<td class="td-title">' + esc(a.Title) + "</td>" },
+    { key: "ClientType", label: "Client Type", sortable: true, render: a => "<td>" + esc(a.ClientType || "") + "</td>" },
+    { key: "SubmissionDate", label: "Submitted", sortable: true, render: a => "<td>" + fmtDate(a.SubmissionDate) + "</td>" }
+  ];
+  if (stage !== "dnc") cols.push({ key: "DaysTaken", label: "Days", sortable: true, num: true, render: a => daysCell(a) });
+  cols.push({ key: "Insurer", label: "Insurer", sortable: true, render: a => "<td>" + esc(lookupTitle(a, "Insurer", "insurers")) + "</td>" });
+  cols.push({ key: "Adviser", label: "Adviser", sortable: true, render: a => "<td>" + esc(lookupTitle(a, "Adviser", "advisers")) + "</td>" });
+  cols.push({ key: "ImplementationManager", label: "Impl. Manager", sortable: true, render: a => "<td>" + (a.ImplementationManager ? esc(a.ImplementationManager) : '<span class="cmt-none">—</span>') + "</td>" });
+  cols.push({ key: "Status", label: "Status", sortable: true, render: a => "<td>" + statusSelectHTML("applications", a.id, a.Status, APP_STATUSES, STATUS_BADGE) + "</td>" });
+  if (stage === "paid") {
+    cols.push({ key: "ReceivedCommission", label: "Received Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ReceivedCommission) + "</td>" });
+    cols.push({ key: "CommissionPaidDate", label: "Comm. Paid", sortable: true, render: a => "<td>" + fmtDate(a.CommissionPaidDate) + "</td>" });
+  } else if (stage !== "dnc") {
+    cols.push({ key: "ExpectedCommission", label: "Expected Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ExpectedCommission) + "</td>" });
+  }
+  cols.push({ key: "comments", label: "Latest Comment", sortable: false, render: a => commentCell("applications", a) });
+  return cols;
 }
-function renderApplicationsTable() {
+function commentCell(entity, row) {
+  const c = latestComment(entity, row.id);
+  if (!c) return '<td class="td-comment"><span class="cmt-none">No comments</span></td>';
+  return '<td class="td-comment"><span class="cmt-snippet" title="' + esc(c.Comment) + '">' + esc(truncate(c.Comment, 80)) + "</span></td>";
+}
+function actionsCell(entity, id) {
+  const n = commentCount(entity, id);
+  return '<td class="td-actions">' +
+    '<button class="icon-btn cmt-btn" data-action="comments" data-id="' + id + '" title="Comments">' + ICON_COMMENT + (n ? '<span class="cmt-badge">' + n + "</span>" : "") + "</button>" +
+    '<button class="icon-btn" data-action="edit" data-id="' + id + '" title="Edit">' + ICON_EDIT + "</button>" +
+    "</td>";
+}
+function appActionsCell(a) { return actionsCell("applications", a.id); }
+// Search + adviser/insurer/date filters (NOT stage) — used for the table and the tab counts
+function baseFilteredApplications() {
   const q = $("#app-search").value.trim().toLowerCase();
-  const status = $("#app-filter-status").value;
   const adviser = $("#app-filter-adviser").value;
   const insurer = $("#app-filter-insurer").value;
-  const team = $("#app-filter-team").value;
-  const from = $("#app-filter-from").value;
-  const to = $("#app-filter-to").value;
-  const rows = state.applications.filter(a => {
-    if (status && a.Status !== status) return false;
+  const bounds = appFyBounds();
+  return state.applications.filter(a => {
     if (adviser && String(a.AdviserLookupId === undefined || a.AdviserLookupId === null ? "" : a.AdviserLookupId) !== adviser) return false;
     if (insurer && String(a.InsurerLookupId === undefined || a.InsurerLookupId === null ? "" : a.InsurerLookupId) !== insurer) return false;
-    if (team === "yes" && !a.InsuranceTeam) return false;
-    if (team === "no" && a.InsuranceTeam) return false;
-    const sub = a.SubmissionDate ? String(a.SubmissionDate).slice(0, 10) : "";
-    if (from && (!sub || sub < from)) return false;
-    if (to && (!sub || sub > to)) return false;
+    if (!inRange(a.SubmissionDate, bounds)) return false;
     if (q) {
       const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), a.Status, a.ClientType, a.ImplementationManager].join(" ").toLowerCase();
       if (hay.indexOf(q) < 0) return false;
     }
     return true;
-  }).sort((x, y) => String(y.SubmissionDate || "").localeCompare(String(x.SubmissionDate || "")));
-  $("#app-count").textContent = rows.length + " of " + state.applications.length;
+  });
+}
+function getFilteredApplications(sortState) {
+  const rows = baseFilteredApplications().filter(a => appStageOf(a) === state.appStage);
+  return applySort(rows, sortState || state.sort.applications);
+}
+function renderStageTabs() {
+  const base = baseFilteredApplications();
+  const counts = {};
+  APP_STAGES.forEach(s => { counts[s.key] = 0; });
+  base.forEach(a => { counts[appStageOf(a)]++; });
+  $("#app-stage-tabs").innerHTML = APP_STAGES.map(s =>
+    '<button class="stage-tab' + (s.key === state.appStage ? " active" : "") + '" data-stage="' + s.key + '">' +
+      '<span class="st-count">' + counts[s.key] + "</span>" +
+      '<span class="st-label">' + esc(s.label) + "</span>" +
+    "</button>"
+  ).join("");
+}
+function renderApplicationsTable() {
+  renderStageTabs();
+  const cols = appColumns(state.appStage);
+  const cur = state.sort.applications;
+  const eff = cols.some(c => c.sortable && c.key === cur.key) ? cur : { key: "SubmissionDate", dir: "desc" };
+  $("#applications-thead").innerHTML = "<tr>" + cols.map(c =>
+    "<th" + (c.num ? ' class="td-num"' : "") + (c.sortable ? ' data-sort="' + c.key + '"' : "") + ">" + esc(c.label) + (c.sortable ? '<span class="sort-ind"></span>' : "") + "</th>"
+  ).join("") + '<th class="td-actions">Actions</th></tr>';
+  const rows = getFilteredApplications(eff);
+  const stage = stageDef(state.appStage);
+  $("#app-count").textContent = rows.length + (rows.length === 1 ? " application" : " applications");
+  if (stage.comm === "received") $("#app-totals").textContent = "Received " + audFmt.format(sumBy(rows, r => r.ReceivedCommission));
+  else if (stage.comm === "expected") $("#app-totals").textContent = "Expected " + audFmt.format(sumBy(rows, r => r.ExpectedCommission));
+  else $("#app-totals").textContent = "";
   $("#applications-tbody").innerHTML = rows.length
-    ? rows.map(appRow).join("")
-    : '<tr><td colspan="12" class="td-empty">No applications found.</td></tr>';
+    ? rows.map(a => "<tr>" + cols.map(c => c.render(a)).join("") + appActionsCell(a) + "</tr>").join("")
+    : emptyRow(cols.length + 1, "No applications in this stage.", "Try another tab or adjust your filters.");
+  updateSortIndicators($("#applications-thead"), eff);
+}
+function csvValForApp(a, key) {
+  if (key === "Insurer") return lookupTitle(a, "Insurer", "insurers");
+  if (key === "Adviser") return lookupTitle(a, "Adviser", "advisers");
+  if (key === "SubmissionDate") return fmtDate(a.SubmissionDate);
+  if (key === "CommissionPaidDate") return fmtDate(a.CommissionPaidDate);
+  if (key === "DaysTaken") { const d = daysTaken(a); return d === null ? "" : d; }
+  if (key === "ExpectedCommission" || key === "ReceivedCommission") return a[key] != null && a[key] !== "" ? Number(a[key]).toFixed(2) : "";
+  return a[key] == null ? "" : a[key];
+}
+function exportApplicationsCSV() {
+  const cols = appColumns(state.appStage).filter(c => c.key !== "comments");
+  const header = cols.map(c => c.label).concat(["Latest Comment"]);
+  const rows = getFilteredApplications();
+  const data = [header];
+  rows.forEach(a => {
+    const line = cols.map(c => csvValForApp(a, c.key));
+    const lc = latestComment("applications", a.id);
+    line.push(lc ? lc.Comment : "");
+    data.push(line);
+  });
+  downloadCSV("applications_" + state.appStage + "_" + todayStr() + ".csv", data);
 }
 function openAppModal(item) {
   $("#app-modal-title").textContent = item ? "Edit Application" : "New Application";
@@ -1017,6 +1710,7 @@ function openAppModal(item) {
   $("#af-paiddate").value = dateInputVal(item && item.CommissionPaidDate);
   $("#af-commnotes").value = (item && item.CommissionNotes) || "";
   $("#af-notes").value = (item && item.Notes) || "";
+  $("#af-delete").hidden = !item;
   // New external (non-team) application: default Expected Commission from Settings, still editable.
   if (!item && !$("#af-team").checked) {
     const fee = externalAdviserFee();
@@ -1024,65 +1718,264 @@ function openAppModal(item) {
   }
   openModal("app-modal");
 }
+/* ---------- Comments thread modal (apps + claims) ---------- */
+let commentCtx = null;
+function openCommentsModal(entity, id) {
+  const rec = recordFor(entity, id);
+  commentCtx = { entity: entity, id: id };
+  $("#comments-modal-title").textContent = "Comments — " + (rec ? (rec.Title || "Item") : "Item");
+  $("#cmt-input").value = "";
+  renderThread();
+  openModal("comments-modal");
+  setTimeout(() => { try { $("#cmt-input").focus(); } catch (e) {} }, 50);
+}
+function renderThread() {
+  if (!commentCtx) return;
+  const list = commentsFor(commentCtx.entity, commentCtx.id);
+  const el = $("#comments-thread");
+  if (!list.length) { el.innerHTML = '<div class="thread-empty">No comments yet. Add the first one below.</div>'; return; }
+  el.innerHTML = list.map(c =>
+    '<div class="cmt"><div class="cmt-meta"><span class="cmt-author">' + esc(c._author || "Unknown") + "</span><span>" + esc(fmtDateTime(c._created)) + "</span></div>" +
+    '<div class="cmt-text">' + esc(c.Comment || "") + "</div></div>"
+  ).join("");
+  el.scrollTop = el.scrollHeight;
+}
+async function addComment() {
+  if (!commentCtx) return;
+  const text = $("#cmt-input").value.trim();
+  if (!text) return;
+  const btn = $("#cmt-add");
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Adding…";
+  try {
+    const fields = { Comment: text };
+    fields[commentFk(commentCtx.entity)] = Number(commentCtx.id);
+    await createItem(LISTS.comments, fields);
+    $("#cmt-input").value = "";
+    await loadList("comments");
+    renderThread();
+    renderActivePage();
+    showToast("Comment added.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+/* ---------- Inline status change (apps + claims) ---------- */
+let statusCtx = null;
+function recordFor(entity, id) { return state[entity].find(x => x.id === String(id)); }
+function field(id, label, html) { return '<label class="field span-2"><span>' + esc(label) + "</span>" + html + "</label>"; }
+function statusPromptConfig(entity, newStatus, rec) {
+  if (entity === "applications") {
+    if (newStatus === "Completed") return {
+      title: "Mark as Completed",
+      html: field("", "Completion Date *", '<input type="date" id="sp-compdate" class="input" value="' + dateInputVal(rec.CompletionDate || todayStr()) + '">'),
+      collect: () => {
+        const v = $("#sp-compdate").value;
+        if (!v) return { error: "Please enter a completion date." };
+        return { patch: { Status: "Completed", CompletionDate: v } };
+      }
+    };
+    if (newStatus === "Paid") return {
+      title: "Mark as Completed & Paid",
+      html: field("", "Received Commission (AUD)", '<input type="number" step="any" id="sp-received" class="input" value="' + (rec.ReceivedCommission != null ? rec.ReceivedCommission : (rec.ExpectedCommission != null ? rec.ExpectedCommission : "")) + '">') +
+            field("", "Commission Paid Date *", '<input type="date" id="sp-paiddate" class="input" value="' + dateInputVal(rec.CommissionPaidDate || todayStr()) + '">'),
+      collect: () => {
+        const d = $("#sp-paiddate").value;
+        if (!d) return { error: "Please enter the commission paid date." };
+        return { patch: { Status: "Paid", ReceivedCommission: numOrNull($("#sp-received").value), CommissionPaidDate: d } };
+      }
+    };
+    if (newStatus === "Did Not Complete" || newStatus === "Declined") return {
+      title: "Mark as " + newStatus,
+      html: field("", "Reason (added as a comment) *", '<textarea id="sp-reason" class="input" rows="3" placeholder="Why did it not complete?"></textarea>'),
+      collect: () => {
+        const r = $("#sp-reason").value.trim();
+        if (!r) return { error: "Please enter a reason." };
+        return { patch: { Status: newStatus }, reasonComment: r };
+      }
+    };
+    return null;
+  }
+  // claims
+  if (newStatus === "Paid") return {
+    title: "Mark Claim as Paid",
+    html: field("", "Total Paid / Benefit (AUD)", '<input type="number" step="any" id="sp-totalpaid" class="input" value="' + (rec.TotalPaid != null && rec.TotalPaid !== "" ? rec.TotalPaid : (rec.BenefitAmount != null ? rec.BenefitAmount : "")) + '">') +
+          field("", "Claim Management Fee (AUD)", '<input type="number" step="any" id="sp-fee" class="input" value="' + (rec.ClaimManagementFee != null ? rec.ClaimManagementFee : "") + '">') +
+          field("", "Fee Paid Date *", '<input type="date" id="sp-feepaid" class="input" value="' + dateInputVal(rec.ClaimFeePaidDate || todayStr()) + '">'),
+    collect: () => {
+      const d = $("#sp-feepaid").value;
+      if (!d) return { error: "Please enter the fee paid date." };
+      return { patch: { ClaimStatus: "Paid", TotalPaid: numOrNull($("#sp-totalpaid").value), ClaimManagementFee: numOrNull($("#sp-fee").value), ClaimFeePaidDate: d } };
+    }
+  };
+  if (newStatus === "Approved") return {
+    title: "Approve Claim",
+    html: field("", "Decision Date *", '<input type="date" id="sp-decision" class="input" value="' + dateInputVal(rec.DecisionDate || todayStr()) + '">'),
+    collect: () => {
+      const d = $("#sp-decision").value;
+      if (!d) return { error: "Please enter the decision date." };
+      return { patch: { ClaimStatus: "Approved", DecisionDate: d } };
+    }
+  };
+  if (newStatus === "Withdrawn" || newStatus === "Declined" || newStatus === "Closed") return {
+    title: "Mark Claim as " + newStatus,
+    html: field("", "Reason (added to Notes) *", '<textarea id="sp-reason" class="input" rows="3" placeholder="Reason…"></textarea>'),
+    collect: () => {
+      const r = $("#sp-reason").value.trim();
+      if (!r) return { error: "Please enter a reason." };
+      const stamp = fmtDate(todayStr()) + " — " + newStatus + ": " + r;
+      const notes = rec.Notes ? (rec.Notes + "\n" + stamp) : stamp;
+      return { patch: { ClaimStatus: newStatus, Notes: notes } };
+    }
+  };
+  return null;
+}
+function changeStatusInline(entity, id, newStatus) {
+  const rec = recordFor(entity, id);
+  if (!rec) return;
+  const cfg = statusPromptConfig(entity, newStatus, rec);
+  if (!cfg) {
+    quickSaveStatus(entity, id, entity === "applications" ? { Status: newStatus } : { ClaimStatus: newStatus });
+    return;
+  }
+  statusCtx = { entity: entity, id: id, cfg: cfg };
+  $("#status-modal-title").textContent = cfg.title;
+  $("#status-modal-fields").innerHTML = cfg.html;
+  openModal("status-modal");
+  const first = $("#status-modal-fields").querySelector("input,textarea");
+  if (first) setTimeout(() => { try { first.focus(); } catch (e) {} }, 50);
+}
+function confirmStatusPrompt() {
+  if (!statusCtx) return;
+  const res = statusCtx.cfg.collect();
+  if (res.error) { showToast(res.error, "error"); return; }
+  const ctx = statusCtx;
+  statusCtx = null;
+  closeModal("status-modal");
+  quickSaveStatus(ctx.entity, ctx.id, res.patch, res.reasonComment);
+}
+async function quickSaveStatus(entity, id, patch, reasonComment) {
+  try {
+    await updateItem(LISTS[entity], id, patch);
+    if (reasonComment) await createItem(LISTS.comments, { Comment: reasonComment, ApplicationLookupId: Number(id) });
+    await loadList(entity);
+    if (reasonComment) await loadList("comments");
+    showToast("Status updated.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
+  renderActivePage();
+}
 //[S2-end]
 /* ================= Claims ================= */
 function fillClaimFilterSelects() {
-  fillOptions($("#claim-filter-status"), CLAIM_STATUSES.map(s => [s, s]), "All Statuses");
   fillOptions($("#claim-filter-adviser"), sortByTitle(state.advisers).map(a => [a.id, a.Title]), "All Advisers");
   fillOptions($("#claim-filter-insurer"), sortByTitle(state.insurers).map(i => [i.id, i.Title]), "All Insurers");
   fillOptions($("#claim-filter-type"), CLAIM_TYPES.map(t => [t, t]), "All Types");
 }
 function renderClaims() {
   fillClaimFilterSelects();
+  restoreFilters("claims");
+  bindSortableHead($("#claims-thead"), "claims", renderClaimsTable);
   renderClaimsTable();
 }
-function claimRow(c) {
-  const linked = lookupTitle(c, "LinkedApplication", "applications");
-  const adviser = lookupTitle(c, "Adviser", "advisers");
-  const insurer = lookupTitle(c, "Insurer", "insurers");
-  return "<tr>" +
-    '<td class="td-title">' + esc(c.Title) + "</td>" +
-    "<td>" + esc(linked) + "</td>" +
-    "<td>" + esc(adviser) + "</td>" +
-    "<td>" + esc(insurer) + "</td>" +
-    "<td>" + esc(c.ClaimType || "") + "</td>" +
-    "<td>" + claimBadge(c.ClaimStatus) + "</td>" +
-    "<td>" + fmtDate(c.LodgementDate) + "</td>" +
-    '<td class="td-num">' + fmtAUD(c.BenefitAmount) + "</td>" +
-    '<td class="td-num">' + fmtAUD(c.MonthlyBenefitAmount) + "</td>" +
-    '<td class="td-num">' + fmtAUD(c.TotalPaid) + "</td>" +
-    '<td class="td-actions">' +
-      '<button class="icon-btn" data-action="edit" data-id="' + c.id + '" title="Edit">' + ICON_EDIT + "</button>" +
-      '<button class="icon-btn danger" data-action="delete" data-id="' + c.id + '" title="Delete">' + ICON_TRASH + "</button>" +
-    "</td></tr>";
+function claimColumns(stage) {
+  const cols = [
+    { key: "Title", label: "Title", sortable: true, render: c => '<td class="td-title">' + esc(c.Title) + "</td>" },
+    { key: "Adviser", label: "Adviser", sortable: true, render: c => "<td>" + esc(lookupTitle(c, "Adviser", "advisers")) + "</td>" },
+    { key: "Insurer", label: "Insurer", sortable: true, render: c => "<td>" + esc(lookupTitle(c, "Insurer", "insurers")) + "</td>" },
+    { key: "ClaimType", label: "Claim Type", sortable: true, render: c => "<td>" + esc(c.ClaimType || "") + "</td>" },
+    { key: "ClaimStatus", label: "Status", sortable: true, render: c => "<td>" + statusSelectHTML("claims", c.id, c.ClaimStatus, CLAIM_STATUSES, CLAIM_BADGE) + "</td>" },
+    { key: "LodgementDate", label: "Lodged", sortable: true, render: c => "<td>" + fmtDate(c.LodgementDate) + "</td>" }
+  ];
+  if (stage === "completed") {
+    cols.push({ key: "BenefitAmount", label: "Benefit", sortable: true, num: true, render: c => '<td class="td-num">' + fmtAUD(c.BenefitAmount) + "</td>" });
+    cols.push({ key: "TotalPaid", label: "Total Paid", sortable: true, num: true, render: c => '<td class="td-num">' + fmtAUD(c.TotalPaid) + "</td>" });
+    cols.push({ key: "ClaimManagementFee", label: "Mgmt Fee", sortable: true, num: true, render: c => '<td class="td-num">' + fmtAUD(c.ClaimManagementFee) + "</td>" });
+    cols.push({ key: "ClaimFeePaidDate", label: "Fee Paid", sortable: true, render: c => "<td>" + fmtDate(c.ClaimFeePaidDate) + "</td>" });
+    cols.push({ key: "comments", label: "Latest Comment", sortable: false, render: c => commentCell("claims", c) });
+  } else if (stage === "dnc") {
+    cols.push({ key: "Notes", label: "Notes / Reason", sortable: false, render: c => '<td class="td-comment"><span class="cmt-snippet" title="' + esc(c.Notes || "") + '">' + (c.Notes ? esc(truncate(c.Notes, 80)) : '<span class="cmt-none">—</span>') + "</span></td>" });
+  } else {
+    cols.push({ key: "BenefitAmount", label: "Benefit", sortable: true, num: true, render: c => '<td class="td-num">' + fmtAUD(c.BenefitAmount) + "</td>" });
+    cols.push({ key: "MonthlyBenefitAmount", label: "Monthly Benefit", sortable: true, num: true, render: c => '<td class="td-num">' + fmtAUD(c.MonthlyBenefitAmount) + "</td>" });
+    cols.push({ key: "comments", label: "Latest Comment", sortable: false, render: c => commentCell("claims", c) });
+  }
+  return cols;
 }
-function renderClaimsTable() {
+function claimActionsCell(c) { return actionsCell("claims", c.id); }
+function baseFilteredClaims() {
   const q = $("#claim-search").value.trim().toLowerCase();
-  const status = $("#claim-filter-status").value;
   const adviser = $("#claim-filter-adviser").value;
   const insurer = $("#claim-filter-insurer").value;
   const type = $("#claim-filter-type").value;
-  const rows = state.claims.filter(c => {
-    if (status && c.ClaimStatus !== status) return false;
+  return state.claims.filter(c => {
     if (adviser && String(c.AdviserLookupId === undefined || c.AdviserLookupId === null ? "" : c.AdviserLookupId) !== adviser) return false;
     if (insurer && String(c.InsurerLookupId === undefined || c.InsurerLookupId === null ? "" : c.InsurerLookupId) !== insurer) return false;
     if (type && c.ClaimType !== type) return false;
     if (q) {
-      const hay = [c.Title, lookupTitle(c, "LinkedApplication", "applications"), lookupTitle(c, "Adviser", "advisers"), lookupTitle(c, "Insurer", "insurers"), c.ClaimType, c.ClaimStatus].join(" ").toLowerCase();
+      const hay = [c.Title, lookupTitle(c, "Adviser", "advisers"), lookupTitle(c, "Insurer", "insurers"), c.ClaimType, c.ClaimStatus].join(" ").toLowerCase();
       if (hay.indexOf(q) < 0) return false;
     }
     return true;
-  }).sort((x, y) => String(y.LodgementDate || "").localeCompare(String(x.LodgementDate || "")));
-  $("#claim-count").textContent = rows.length + " of " + state.claims.length;
+  });
+}
+function getFilteredClaims(sortState) {
+  const rows = baseFilteredClaims().filter(c => claimStageOf(c) === state.claimStage);
+  return applySort(rows, sortState || state.sort.claims);
+}
+function renderClaimStageTabs() {
+  const base = baseFilteredClaims();
+  const counts = {};
+  CLAIM_STAGES.forEach(s => { counts[s.key] = 0; });
+  base.forEach(c => { counts[claimStageOf(c)]++; });
+  $("#claim-stage-tabs").innerHTML = CLAIM_STAGES.map(s =>
+    '<button class="stage-tab' + (s.key === state.claimStage ? " active" : "") + '" data-stage="' + s.key + '">' +
+      '<span class="st-count">' + counts[s.key] + "</span><span class=\"st-label\">" + esc(s.label) + "</span></button>"
+  ).join("");
+}
+function renderClaimsTable() {
+  renderClaimStageTabs();
+  const cols = claimColumns(state.claimStage);
+  const cur = state.sort.claims;
+  const eff = cols.some(c => c.sortable && c.key === cur.key) ? cur : { key: "LodgementDate", dir: "desc" };
+  $("#claims-thead").innerHTML = "<tr>" + cols.map(c =>
+    "<th" + (c.num ? ' class="td-num"' : "") + (c.sortable ? ' data-sort="' + c.key + '"' : "") + ">" + esc(c.label) + (c.sortable ? '<span class="sort-ind"></span>' : "") + "</th>"
+  ).join("") + '<th class="td-actions">Actions</th></tr>';
+  const rows = getFilteredClaims(eff);
+  $("#claim-count").textContent = rows.length + (rows.length === 1 ? " claim" : " claims");
+  if (state.claimStage === "completed") $("#claim-totals").textContent = "Paid " + audFmt.format(sumBy(rows, r => r.TotalPaid)) + " · Fees " + audFmt.format(sumBy(rows, r => r.ClaimManagementFee));
+  else $("#claim-totals").textContent = "";
   $("#claims-tbody").innerHTML = rows.length
-    ? rows.map(claimRow).join("")
-    : '<tr><td colspan="11" class="td-empty">No claims found.</td></tr>';
+    ? rows.map(c => "<tr>" + cols.map(col => col.render(c)).join("") + claimActionsCell(c) + "</tr>").join("")
+    : emptyRow(cols.length + 1, "No claims in this stage.", "Try another tab or adjust your filters.");
+  updateSortIndicators($("#claims-thead"), eff);
+}
+function csvValForClaim(c, key) {
+  if (key === "Insurer") return lookupTitle(c, "Insurer", "insurers");
+  if (key === "Adviser") return lookupTitle(c, "Adviser", "advisers");
+  if (key === "LodgementDate") return fmtDate(c.LodgementDate);
+  if (key === "ClaimFeePaidDate") return fmtDate(c.ClaimFeePaidDate);
+  if (key === "comments") { const lc = latestComment("claims", c.id); return lc ? lc.Comment : ""; }
+  if (["BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "ClaimManagementFee"].indexOf(key) >= 0) return c[key] != null && c[key] !== "" ? Number(c[key]).toFixed(2) : "";
+  return c[key] == null ? "" : c[key];
+}
+function exportClaimsCSV() {
+  const cols = claimColumns(state.claimStage);
+  const header = cols.map(c => c.label);
+  const rows = getFilteredClaims();
+  const data = [header];
+  rows.forEach(c => data.push(cols.map(col => csvValForClaim(c, col.key))));
+  downloadCSV("claims_" + state.claimStage + "_" + todayStr() + ".csv", data);
 }
 function openClaimModal(item) {
   $("#claim-modal-title").textContent = item ? "Edit Claim" : "New Claim";
   $("#cf-id").value = item ? item.id : "";
   $("#cf-title").value = (item && item.Title) || "";
-  fillLookupSelect($("#cf-linkedapp"), sortByTitle(state.applications), item ? item.LinkedApplicationLookupId : "", "— None —");
   fillLookupSelect($("#cf-adviser"), state.advisers, item ? item.AdviserLookupId : "", "Select adviser…");
   fillLookupSelect($("#cf-insurer"), state.insurers, item ? item.InsurerLookupId : "", "Select insurer…");
   fillStaticSelect($("#cf-claimtype"), CLAIM_TYPES, item ? item.ClaimType : "", "Select…");
@@ -1094,7 +1987,10 @@ function openClaimModal(item) {
   $("#cf-firstpay").value = dateInputVal(item && item.FirstPaymentDate);
   $("#cf-lastpay").value = dateInputVal(item && item.LastPaymentDate);
   $("#cf-totalpaid").value = (item && item.TotalPaid !== null && item.TotalPaid !== undefined) ? item.TotalPaid : "";
+  $("#cf-mgmtfee").value = (item && item.ClaimManagementFee !== null && item.ClaimManagementFee !== undefined) ? item.ClaimManagementFee : "";
+  $("#cf-feepaid").value = dateInputVal(item && item.ClaimFeePaidDate);
   $("#cf-notes").value = (item && item.Notes) || "";
+  $("#cf-delete").hidden = !item;
   openModal("claim-modal");
 }
 
@@ -1204,8 +2100,14 @@ $("#menu-btn").addEventListener("click", () => {
 });
 $("#backdrop").addEventListener("click", closeSidebar);
 
+function showSkeletons() {
+  if (currentPage === "dashboard") { $("#dash-app-cards").innerHTML = skeletonCards(6); $("#dash-claim-cards").innerHTML = skeletonCards(4); }
+  else if (currentPage === "applications") { $("#applications-tbody").innerHTML = skeletonRows(12, 6); }
+  else if (currentPage === "claims") { $("#claims-tbody").innerHTML = skeletonRows(11, 6); }
+}
 document.querySelectorAll("[data-refresh]").forEach(b => b.addEventListener("click", async () => {
   b.disabled = true;
+  showSkeletons();
   try {
     await loadAll();
     renderActivePage();
@@ -1234,30 +2136,79 @@ $("#confirm-ok").addEventListener("click", () => {
   closeModal("confirm-modal");
   if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
 });
+$("#status-confirm").addEventListener("click", confirmStatusPrompt);
 
 /* --- Applications events --- */
 $("#btn-add-application").addEventListener("click", () => openAppModal(null));
-["app-search", "app-filter-status", "app-filter-adviser", "app-filter-insurer", "app-filter-team", "app-filter-from", "app-filter-to"].forEach(id => {
+["app-search", "app-filter-adviser", "app-filter-insurer"].forEach(id => {
   const el = document.getElementById(id);
-  el.addEventListener("input", renderApplicationsTable);
-  el.addEventListener("change", renderApplicationsTable);
+  const handler = () => { saveFilters("applications"); renderApplicationsTable(); };
+  el.addEventListener("input", handler);
+  el.addEventListener("change", handler);
 });
-$("#app-clear-filters").addEventListener("click", () => {
-  ["app-search", "app-filter-status", "app-filter-adviser", "app-filter-insurer", "app-filter-team", "app-filter-from", "app-filter-to"].forEach(id => { document.getElementById(id).value = ""; });
+$("#app-fy").addEventListener("change", () => {
+  const v = $("#app-fy").value;
+  if (v === "all") state.appFy = { mode: "all", fyStart: null };
+  else state.appFy = { mode: "fy", fyStart: Number(v.split(":")[1]) };
+  saveFilters("applications");
   renderApplicationsTable();
 });
-$("#applications-tbody").addEventListener("click", async e => {
+$("#app-clear-filters").addEventListener("click", () => {
+  ["app-search", "app-filter-adviser", "app-filter-insurer"].forEach(id => { document.getElementById(id).value = ""; });
+  state.appFy = { mode: "all", fyStart: null };
+  $("#app-fy").value = "all";
+  removeLS(LS.filters("applications"));
+  renderApplicationsTable();
+});
+$("#app-export-csv").addEventListener("click", exportApplicationsCSV);
+// Inline status change (applications + claims share this delegated handler)
+document.addEventListener("change", e => {
+  const sel = e.target.closest(".status-select");
+  if (!sel) return;
+  changeStatusInline(sel.dataset.statusEntity, sel.dataset.id, sel.value);
+});
+// Premium button ripple (skips when reduced motion is preferred)
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".btn");
+  if (!btn) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const r = document.createElement("span");
+  r.className = "ripple";
+  r.style.width = r.style.height = size + "px";
+  r.style.left = (e.clientX - rect.left - size / 2) + "px";
+  r.style.top = (e.clientY - rect.top - size / 2) + "px";
+  btn.appendChild(r);
+  setTimeout(() => r.remove(), 600);
+});
+$("#app-stage-tabs").addEventListener("click", e => {
+  const tab = e.target.closest(".stage-tab");
+  if (!tab) return;
+  state.appStage = tab.dataset.stage;
+  writeLS("insTracker.appStage", state.appStage);
+  renderApplicationsTable();
+});
+$("#applications-tbody").addEventListener("click", e => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
   const item = state.applications.find(x => x.id === btn.dataset.id);
   if (!item) return;
   if (btn.dataset.action === "edit") openAppModal(item);
-  else if (btn.dataset.action === "delete") {
-    if (await confirmDialog('Delete application "' + (item.Title || "Untitled") + '"? This cannot be undone.')) {
-      await removeRecord("applications", item.id);
-    }
+  else if (btn.dataset.action === "comments") openCommentsModal("applications", item.id);
+});
+// Delete now lives inside the edit modal
+$("#af-delete").addEventListener("click", async () => {
+  const id = $("#af-id").value;
+  const item = state.applications.find(x => x.id === id);
+  if (!item) return;
+  if (await confirmDialog('Delete application "' + (item.Title || "Untitled") + '"? This cannot be undone.')) {
+    closeModal("app-modal");
+    await removeRecord("applications", id);
   }
 });
+$("#cmt-add").addEventListener("click", addComment);
+$("#cmt-input").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addComment(); } });
 $("#af-team").addEventListener("change", () => {
   if (!$("#af-team").checked) {
     const fee = externalAdviserFee();
@@ -1287,32 +2238,46 @@ $("#app-form").addEventListener("submit", async e => {
 
 /* --- Claims events --- */
 $("#btn-add-claim").addEventListener("click", () => openClaimModal(null));
-["claim-search", "claim-filter-status", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => {
+["claim-search", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => {
   const el = document.getElementById(id);
-  el.addEventListener("input", renderClaimsTable);
-  el.addEventListener("change", renderClaimsTable);
+  const handler = () => { saveFilters("claims"); renderClaimsTable(); };
+  el.addEventListener("input", handler);
+  el.addEventListener("change", handler);
 });
 $("#claim-clear-filters").addEventListener("click", () => {
-  ["claim-search", "claim-filter-status", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => { document.getElementById(id).value = ""; });
+  ["claim-search", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => { document.getElementById(id).value = ""; });
+  removeLS(LS.filters("claims"));
   renderClaimsTable();
 });
-$("#claims-tbody").addEventListener("click", async e => {
+$("#claim-export-csv").addEventListener("click", exportClaimsCSV);
+$("#claim-stage-tabs").addEventListener("click", e => {
+  const tab = e.target.closest(".stage-tab");
+  if (!tab) return;
+  state.claimStage = tab.dataset.stage;
+  writeLS("insTracker.claimStage", state.claimStage);
+  renderClaimsTable();
+});
+$("#claims-tbody").addEventListener("click", e => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
   const item = state.claims.find(x => x.id === btn.dataset.id);
   if (!item) return;
   if (btn.dataset.action === "edit") openClaimModal(item);
-  else if (btn.dataset.action === "delete") {
-    if (await confirmDialog('Delete claim "' + (item.Title || "Untitled") + '"? This cannot be undone.')) {
-      await removeRecord("claims", item.id);
-    }
+  else if (btn.dataset.action === "comments") openCommentsModal("claims", item.id);
+});
+$("#cf-delete").addEventListener("click", async () => {
+  const id = $("#cf-id").value;
+  const item = state.claims.find(x => x.id === id);
+  if (!item) return;
+  if (await confirmDialog('Delete claim "' + (item.Title || "Untitled") + '"? This cannot be undone.')) {
+    closeModal("claim-modal");
+    await removeRecord("claims", id);
   }
 });
 $("#claim-form").addEventListener("submit", async e => {
   e.preventDefault();
   const fields = {
     Title: $("#cf-title").value.trim(),
-    LinkedApplicationLookupId: $("#cf-linkedapp").value ? Number($("#cf-linkedapp").value) : null,
     AdviserLookupId: $("#cf-adviser").value ? Number($("#cf-adviser").value) : null,
     InsurerLookupId: $("#cf-insurer").value ? Number($("#cf-insurer").value) : null,
     ClaimType: $("#cf-claimtype").value || null,
@@ -1324,6 +2289,8 @@ $("#claim-form").addEventListener("submit", async e => {
     FirstPaymentDate: $("#cf-firstpay").value || null,
     LastPaymentDate: $("#cf-lastpay").value || null,
     TotalPaid: numOrNull($("#cf-totalpaid").value),
+    ClaimManagementFee: numOrNull($("#cf-mgmtfee").value),
+    ClaimFeePaidDate: $("#cf-feepaid").value || null,
     Notes: $("#cf-notes").value
   };
   await saveRecord("claims", $("#cf-id").value, fields, "claim-modal", e.target);
@@ -1392,6 +2359,26 @@ $("#signout-btn").addEventListener("click", () => {
   msalApp.logoutRedirect({ account: msalApp.getActiveAccount() });
 });
 $("#overlay-retry").addEventListener("click", () => location.reload());
+
+/* --- Dashboard range events + restore persisted state --- */
+restoreDash();
+["applications", "claims"].forEach(p => { const s = readLS(LS.sort(p)); if (s && s.key) state.sort[p] = s; });
+(function () { const st = readLS("insTracker.appStage"); if (st && APP_STAGES.some(s => s.key === st)) state.appStage = st; })();
+(function () { const st = readLS("insTracker.claimStage"); if (st && CLAIM_STAGES.some(s => s.key === st)) state.claimStage = st; })();
+$("#dash-fy").addEventListener("change", () => {
+  const v = $("#dash-fy").value;
+  if (v === "all") state.dash.mode = "all";
+  else if (v === "custom") state.dash.mode = "custom";
+  else { state.dash.mode = "fy"; state.dash.fyStart = Number(v.split(":")[1]); }
+  saveDash();
+  renderDashboard();
+});
+["dash-from", "dash-to"].forEach(id => $("#" + id).addEventListener("change", () => {
+  state.dash.from = $("#dash-from").value;
+  state.dash.to = $("#dash-to").value;
+  saveDash();
+  renderDashboard();
+}));
 
 /* ================= Init ================= */
 async function init() {
