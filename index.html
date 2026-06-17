@@ -516,7 +516,7 @@ body{
         <label class="t-field"><span>Financial Year</span><select id="app-fy" class="input"></select></label>
         <label class="t-field"><span>Adviser</span><select id="app-filter-adviser" class="input"></select></label>
         <label class="t-field"><span>Insurer</span><select id="app-filter-insurer" class="input"></select></label>
-        <label class="t-field"><span>Loading Disc.</span><select id="app-filter-loading" class="input"></select></label>
+        <label class="t-field"><span>Month (submitted)</span><input id="app-filter-month" type="month" class="input"></label>
         <button id="app-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
         <button id="app-export-csv" class="btn btn-ghost btn-sm">Export CSV</button>
         <div class="toolbar-meta">
@@ -555,6 +555,7 @@ body{
         <label class="t-field"><span>Adviser</span><select id="claim-filter-adviser" class="input"></select></label>
         <label class="t-field"><span>Insurer</span><select id="claim-filter-insurer" class="input"></select></label>
         <label class="t-field"><span>Claim Type</span><select id="claim-filter-type" class="input"></select></label>
+        <label class="t-field"><span>Month (lodged)</span><input id="claim-filter-month" type="month" class="input"></label>
         <button id="claim-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
         <button id="claim-export-csv" class="btn btn-ghost btn-sm">Export CSV</button>
         <div class="toolbar-meta">
@@ -665,15 +666,19 @@ body{
           <div class="card-header">
             <div>
               <h2>Bulk Import</h2>
-              <p class="card-note">One-time historic load from a cleaned CSV. Resolves adviser/insurer/implementation-manager by name (creating any that don't exist) and creates the applications. Preview first — nothing writes until you confirm.</p>
+              <p class="card-note">Historic load from a cleaned CSV. Pick what you're importing, choose the file, and it resolves adviser/insurer (and implementation manager for applications) by name — creating any that don't exist. Preview first; nothing writes until you confirm.</p>
             </div>
           </div>
           <div style="padding:16px 18px">
-            <input type="file" id="import-file" accept=".csv,text/csv" class="input" style="max-width:340px">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+              <label class="t-field"><span>Import into</span><select id="import-entity" class="input"><option value="applications">Applications</option><option value="claims">Claims</option></select></label>
+              <label class="t-field grow"><span>CSV file</span><input type="file" id="import-file" accept=".csv,text/csv" class="input"></label>
+              <button id="import-clear" class="btn btn-ghost btn-sm">Clear</button>
+            </div>
             <div id="import-preview" style="margin-top:14px"></div>
             <div id="import-progress" style="margin-top:12px"></div>
             <div id="import-report" style="margin-top:12px"></div>
-            <div style="margin-top:14px"><button id="import-run" class="btn" disabled>Import Applications</button></div>
+            <div style="margin-top:14px"><button id="import-run" class="btn" disabled>Import</button></div>
           </div>
         </div>
       </div>
@@ -1145,11 +1150,11 @@ function setVal(id, v) { const el = document.getElementById(id); if (el && v !==
 function saveFilters(page) {
   if (page === "applications") writeLS(LS.filters(page), {
     q: $("#app-search").value, adviser: $("#app-filter-adviser").value,
-    insurer: $("#app-filter-insurer").value, loading: $("#app-filter-loading").value, fy: state.appFy
+    insurer: $("#app-filter-insurer").value, month: $("#app-filter-month").value, fy: state.appFy
   });
   else writeLS(LS.filters(page), {
     q: $("#claim-search").value, adviser: $("#claim-filter-adviser").value,
-    insurer: $("#claim-filter-insurer").value, type: $("#claim-filter-type").value
+    insurer: $("#claim-filter-insurer").value, type: $("#claim-filter-type").value, month: $("#claim-filter-month").value
   });
 }
 function restoreFilters(page) {
@@ -1158,11 +1163,11 @@ function restoreFilters(page) {
   const f = readLS(LS.filters(page));
   if (f) {
     if (page === "applications") {
-      setVal("app-search", f.q); setVal("app-filter-adviser", f.adviser); setVal("app-filter-insurer", f.insurer); setVal("app-filter-loading", f.loading);
+      setVal("app-search", f.q); setVal("app-filter-adviser", f.adviser); setVal("app-filter-insurer", f.insurer); setVal("app-filter-month", f.month);
       if (f.fy && f.fy.mode) state.appFy = f.fy;
     } else {
       setVal("claim-search", f.q); setVal("claim-filter-adviser", f.adviser);
-      setVal("claim-filter-insurer", f.insurer); setVal("claim-filter-type", f.type);
+      setVal("claim-filter-insurer", f.insurer); setVal("claim-filter-type", f.type); setVal("claim-filter-month", f.month);
     }
   }
 }
@@ -1693,7 +1698,6 @@ const ICON_COMMENT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none
 function fillAppFilterSelects() {
   fillOptions($("#app-filter-adviser"), sortByTitle(state.advisers).map(a => [a.id, a.Title]), "All Advisers");
   fillOptions($("#app-filter-insurer"), sortByTitle(state.insurers).map(i => [i.id, i.Title]), "All Insurers");
-  fillOptions($("#app-filter-loading"), sortByTitle(state.loadingdiscounts).map(d => [d.id, d.Title]), "All / None");
 }
 // FY selector on the Applications list (filters by SubmissionDate)
 function appFyBounds() {
@@ -1773,12 +1777,12 @@ function baseFilteredApplications() {
   const q = $("#app-search").value.trim().toLowerCase();
   const adviser = $("#app-filter-adviser").value;
   const insurer = $("#app-filter-insurer").value;
-  const loading = $("#app-filter-loading").value;
+  const month = $("#app-filter-month").value;
   const bounds = appFyBounds();
   return state.applications.filter(a => {
     if (adviser && String(a.AdviserLookupId === undefined || a.AdviserLookupId === null ? "" : a.AdviserLookupId) !== adviser) return false;
     if (insurer && String(a.InsurerLookupId === undefined || a.InsurerLookupId === null ? "" : a.InsurerLookupId) !== insurer) return false;
-    if (loading && String(a.LoadingDiscountLookupId === undefined || a.LoadingDiscountLookupId === null ? "" : a.LoadingDiscountLookupId) !== loading) return false;
+    if (month && ymd(a.SubmissionDate).slice(0, 7) !== month) return false;
     if (!inRange(a.SubmissionDate, bounds)) return false;
     if (q) {
       const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), lookupTitle(a, "ImplementationManager", "implmanagers"), lookupTitle(a, "LoadingDiscount", "loadingdiscounts"), a.Status, a.ClientType].join(" ").toLowerCase();
@@ -2084,10 +2088,12 @@ function baseFilteredClaims() {
   const adviser = $("#claim-filter-adviser").value;
   const insurer = $("#claim-filter-insurer").value;
   const type = $("#claim-filter-type").value;
+  const month = $("#claim-filter-month").value;
   return state.claims.filter(c => {
     if (adviser && String(c.AdviserLookupId === undefined || c.AdviserLookupId === null ? "" : c.AdviserLookupId) !== adviser) return false;
     if (insurer && String(c.InsurerLookupId === undefined || c.InsurerLookupId === null ? "" : c.InsurerLookupId) !== insurer) return false;
     if (type && c.ClaimType !== type) return false;
+    if (month && ymd(c.LodgementDate).slice(0, 7) !== month) return false;
     if (q) {
       const hay = [c.Title, lookupTitle(c, "Adviser", "advisers"), lookupTitle(c, "Insurer", "insurers"), c.ClaimType, c.ClaimStatus].join(" ").toLowerCase();
       if (hay.indexOf(q) < 0) return false;
@@ -2332,17 +2338,58 @@ function onImportFile(e) {
   };
   reader.readAsText(file);
 }
+const IMPORT_SPECS = {
+  applications: {
+    listKey: "applications", noun: "applications", statusCol: "Status",
+    lookups: [
+      { col: "Insurer", cache: "insurers", label: "insurers" },
+      { col: "Adviser", cache: "advisers", label: "advisers" },
+      { col: "ImplementationManager", cache: "implmanagers", label: "implementation managers" }
+    ],
+    build: (r, look) => ({
+      Title: r.Title || "(untitled)", ClientType: r.ClientType || null, ClientAge: numOrNull(r.ClientAge),
+      SubmissionDate: r.SubmissionDate || null, CompletionDate: r.CompletionDate || null,
+      InsurerLookupId: look("insurers", r.Insurer), AdviserLookupId: look("advisers", r.Adviser),
+      ImplementationManagerLookupId: look("implmanagers", r.ImplementationManager), Status: r.Status || null,
+      ExpectedCommission: numOrNull(r.ExpectedCommission), ReceivedCommission: numOrNull(r.ReceivedCommission),
+      CommissionPaidDate: r.CommissionPaidDate || null, Notes: r.Notes || ""
+    })
+  },
+  claims: {
+    listKey: "claims", noun: "claims", statusCol: "ClaimStatus",
+    lookups: [
+      { col: "Insurer", cache: "insurers", label: "insurers" },
+      { col: "Adviser", cache: "advisers", label: "advisers" }
+    ],
+    build: (r, look) => ({
+      Title: r.Title || "(untitled)", AdviserLookupId: look("advisers", r.Adviser), InsurerLookupId: look("insurers", r.Insurer),
+      ClaimType: r.ClaimType || null, ClaimStatus: r.ClaimStatus || null,
+      LodgementDate: r.LodgementDate || null, DecisionDate: r.DecisionDate || null,
+      BenefitAmount: numOrNull(r.BenefitAmount), MonthlyBenefitAmount: numOrNull(r.MonthlyBenefitAmount),
+      FirstPaymentDate: r.FirstPaymentDate || null, LastPaymentDate: r.LastPaymentDate || null,
+      TotalPaid: numOrNull(r.TotalPaid), ClaimManagementFee: numOrNull(r.ClaimManagementFee),
+      ClaimFeePaidDate: r.ClaimFeePaidDate || null, Notes: r.Notes || ""
+    })
+  }
+};
+function importEntity() { const s = $("#import-entity"); return s && IMPORT_SPECS[s.value] ? s.value : "applications"; }
+function importSpec() { return IMPORT_SPECS[importEntity()]; }
+function importPills(arr) { return arr.length ? arr.map(v => '<span class="imp-pill warn">+ ' + esc(v) + "</span>").join("") : '<span style="color:var(--muted)">none — all matched ✓</span>'; }
+function clearImport() {
+  importRows = null;
+  $("#import-file").value = "";
+  $("#import-preview").innerHTML = ""; $("#import-progress").innerHTML = ""; $("#import-report").innerHTML = "";
+  $("#import-run").disabled = true; $("#import-run").textContent = "Import";
+}
 function renderImportPreview(objs) {
-  if (!objs.length) { $("#import-preview").innerHTML = '<span class="imp-err">No rows found in the file.</span>'; $("#import-run").disabled = true; return; }
-  const newIns = importMissing(importDistinct(objs, "Insurer"), "insurers");
-  const newAdv = importMissing(importDistinct(objs, "Adviser"), "advisers");
-  const newIm = importMissing(importDistinct(objs, "ImplementationManager"), "implmanagers");
-  const byStatus = {}; objs.forEach(o => { const s = o.Status || "—"; byStatus[s] = (byStatus[s] || 0) + 1; });
-  const pills = arr => arr.length ? arr.map(v => '<span class="imp-pill warn">+ ' + esc(v) + "</span>").join("") : '<span style="color:var(--muted)">none — all matched ✓</span>';
+  if (!objs || !objs.length) { $("#import-preview").innerHTML = '<span class="imp-err">No rows found in the file.</span>'; $("#import-run").disabled = true; return; }
+  const spec = importSpec();
+  const refHtml = spec.lookups.map(lk => "<b>New " + esc(lk.label) + ":</b> " + importPills(importMissing(importDistinct(objs, lk.col), lk.cache))).join("<br>");
+  const byStatus = {}; objs.forEach(o => { const s = o[spec.statusCol] || "—"; byStatus[s] = (byStatus[s] || 0) + 1; });
   $("#import-preview").innerHTML =
-    '<div class="imp-summary"><b>' + objs.length + "</b> applications ready.<br>" +
-    "By status: " + Object.keys(byStatus).map(s => esc(s) + " " + byStatus[s]).join(" · ") + "<br><br>" +
-    "<b>New insurers:</b> " + pills(newIns) + "<br><b>New advisers:</b> " + pills(newAdv) + "<br><b>New implementation managers:</b> " + pills(newIm) + "</div>";
+    '<div class="imp-summary"><b>' + objs.length + "</b> " + esc(spec.noun) + " ready.<br>" +
+    "By status: " + Object.keys(byStatus).map(s => esc(s) + " " + byStatus[s]).join(" · ") + "<br><br>" + refHtml + "</div>";
+  $("#import-run").textContent = "Import " + objs.length + " " + spec.noun;
   $("#import-run").disabled = false;
 }
 async function importEnsureRef(cacheKey, values) {
@@ -2354,41 +2401,33 @@ async function importEnsureRef(cacheKey, values) {
 }
 async function runImport() {
   if (!importRows || !importRows.length) return;
+  const spec = importSpec();
   const btn = $("#import-run");
-  if (!(await confirmDialog("Import " + importRows.length + " applications into SharePoint? This creates new records.", { title: "Confirm Import", confirmLabel: "Import " + importRows.length, danger: false }))) return;
+  if (!(await confirmDialog("Import " + importRows.length + " " + spec.noun + " into SharePoint? This creates new records.", { title: "Confirm Import", confirmLabel: "Import " + importRows.length, danger: false }))) return;
   btn.disabled = true; $("#import-report").innerHTML = "";
   try {
     $("#import-progress").textContent = "Preparing reference data…";
-    const insMap = await importEnsureRef("insurers", importDistinct(importRows, "Insurer"));
-    const advMap = await importEnsureRef("advisers", importDistinct(importRows, "Adviser"));
-    const imMap = await importEnsureRef("implmanagers", importDistinct(importRows, "ImplementationManager"));
-    const lookId = (map, v) => { v = (v || "").trim().toLowerCase(); return v && map[v] ? Number(map[v]) : null; };
+    const maps = {};
+    for (const lk of spec.lookups) { if (!maps[lk.cache]) maps[lk.cache] = await importEnsureRef(lk.cache, importDistinct(importRows, lk.col)); }
+    const look = (cache, v) => { v = (v || "").trim().toLowerCase(); return v && maps[cache] && maps[cache][v] ? Number(maps[cache][v]) : null; };
     let done = 0, failed = 0; const errors = [];
     $("#import-progress").innerHTML = '<div class="progress-track"><div class="progress-fill" id="imp-fill"></div></div><div id="imp-count" style="font-size:12.5px;color:var(--muted);margin-top:6px"></div>';
     const conc = 4;
     for (let i = 0; i < importRows.length; i += conc) {
       const slice = importRows.slice(i, i + conc);
       await Promise.all(slice.map(async r => {
-        const fields = {
-          Title: r.Title || "(untitled)", ClientType: r.ClientType || null, ClientAge: numOrNull(r.ClientAge),
-          SubmissionDate: r.SubmissionDate || null, CompletionDate: r.CompletionDate || null,
-          InsurerLookupId: lookId(insMap, r.Insurer), AdviserLookupId: lookId(advMap, r.Adviser),
-          ImplementationManagerLookupId: lookId(imMap, r.ImplementationManager), Status: r.Status || null,
-          ExpectedCommission: numOrNull(r.ExpectedCommission), ReceivedCommission: numOrNull(r.ReceivedCommission),
-          CommissionPaidDate: r.CommissionPaidDate || null, Notes: r.Notes || ""
-        };
-        try { await createItem(LISTS.applications, stripEmpty(fields)); done++; }
+        try { await createItem(LISTS[spec.listKey], stripEmpty(spec.build(r, look))); done++; }
         catch (err) { failed++; errors.push((r.Title || "row") + ": " + (err.message || err)); }
       }));
       const pct = Math.round(((i + slice.length) / importRows.length) * 100);
       if ($("#imp-fill")) $("#imp-fill").style.width = pct + "%";
       if ($("#imp-count")) $("#imp-count").textContent = (done + failed) + " / " + importRows.length + " processed";
     }
-    await loadList("applications");
+    await loadList(spec.listKey);
     $("#import-progress").innerHTML = "";
     $("#import-report").innerHTML = '<div class="imp-summary"><b>Done.</b> ' + done + " imported" + (failed ? ', <span class="imp-err">' + failed + " failed</span>" : "") + "." +
       (errors.length ? '<details style="margin-top:6px"><summary>Errors (' + errors.length + ")</summary><div class=\"imp-err\" style=\"margin-top:4px\">" + errors.slice(0, 50).map(esc).join("<br>") + "</div></details>" : "") + "</div>";
-    showToast(done + " applications imported.");
+    showToast(done + " " + spec.noun + " imported.");
   } catch (err) {
     console.error(err); $("#import-progress").innerHTML = ""; showToast(friendly(err), "error");
   }
@@ -2443,7 +2482,7 @@ $("#status-confirm").addEventListener("click", confirmStatusPrompt);
 
 /* --- Applications events --- */
 $("#btn-add-application").addEventListener("click", () => openAppModal(null));
-["app-search", "app-filter-adviser", "app-filter-insurer", "app-filter-loading"].forEach(id => {
+["app-search", "app-filter-adviser", "app-filter-insurer", "app-filter-month"].forEach(id => {
   const el = document.getElementById(id);
   const handler = () => { saveFilters("applications"); renderApplicationsTable(); };
   el.addEventListener("input", handler);
@@ -2457,7 +2496,7 @@ $("#app-fy").addEventListener("change", () => {
   renderApplicationsTable();
 });
 $("#app-clear-filters").addEventListener("click", () => {
-  ["app-search", "app-filter-adviser", "app-filter-insurer", "app-filter-loading"].forEach(id => { document.getElementById(id).value = ""; });
+  ["app-search", "app-filter-adviser", "app-filter-insurer", "app-filter-month"].forEach(id => { document.getElementById(id).value = ""; });
   state.appFy = { mode: "all", fyStart: null };
   $("#app-fy").value = "all";
   removeLS(LS.filters("applications"));
@@ -2544,14 +2583,14 @@ $("#app-form").addEventListener("submit", async e => {
 
 /* --- Claims events --- */
 $("#btn-add-claim").addEventListener("click", () => openClaimModal(null));
-["claim-search", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => {
+["claim-search", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type", "claim-filter-month"].forEach(id => {
   const el = document.getElementById(id);
   const handler = () => { saveFilters("claims"); renderClaimsTable(); };
   el.addEventListener("input", handler);
   el.addEventListener("change", handler);
 });
 $("#claim-clear-filters").addEventListener("click", () => {
-  ["claim-search", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type"].forEach(id => { document.getElementById(id).value = ""; });
+  ["claim-search", "claim-filter-adviser", "claim-filter-insurer", "claim-filter-type", "claim-filter-month"].forEach(id => { document.getElementById(id).value = ""; });
   removeLS(LS.filters("claims"));
   renderClaimsTable();
 });
@@ -2673,6 +2712,8 @@ $("#managed-form").addEventListener("submit", async e => {
 // Bulk import (one-time)
 $("#import-file").addEventListener("change", onImportFile);
 $("#import-run").addEventListener("click", runImport);
+$("#import-clear").addEventListener("click", clearImport);
+$("#import-entity").addEventListener("change", () => { if (importRows) renderImportPreview(importRows); });
 
 /* --- Auth events --- */
 $("#signin-btn").addEventListener("click", () => {
