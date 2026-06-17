@@ -869,7 +869,7 @@ body{
 <div class="modal-overlay" id="confirm-modal" hidden>
   <div class="modal modal-sm">
     <div class="modal-header">
-      <h2>Confirm Delete</h2>
+      <h2 id="confirm-title">Confirm Delete</h2>
       <button class="icon-btn" type="button" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body"><p id="confirm-msg" style="font-size:14px"></p></div>
@@ -1212,8 +1212,14 @@ function cancelModal(id) {
   // cancelling a status change must revert the inline <select> to the stored value
   if (id === "status-modal" && statusCtx) { statusCtx = null; renderActivePage(); }
 }
-function confirmDialog(message) {
+// opts: { title, confirmLabel, danger } — defaults to a destructive "Delete" confirm
+function confirmDialog(message, opts) {
+  opts = opts || {};
+  $("#confirm-title").textContent = opts.title || "Confirm Delete";
   $("#confirm-msg").textContent = message;
+  const ok = $("#confirm-ok");
+  ok.textContent = opts.confirmLabel || "Delete";
+  ok.className = "btn" + (opts.danger === false ? "" : " btn-danger");
   openModal("confirm-modal");
   return new Promise(res => { confirmResolve = res; });
 }
@@ -2349,7 +2355,7 @@ async function importEnsureRef(cacheKey, values) {
 async function runImport() {
   if (!importRows || !importRows.length) return;
   const btn = $("#import-run");
-  if (!(await confirmDialog("Import " + importRows.length + " applications into SharePoint? This creates new records."))) return;
+  if (!(await confirmDialog("Import " + importRows.length + " applications into SharePoint? This creates new records.", { title: "Confirm Import", confirmLabel: "Import " + importRows.length, danger: false }))) return;
   btn.disabled = true; $("#import-report").innerHTML = "";
   try {
     $("#import-progress").textContent = "Preparing reference data…";
