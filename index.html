@@ -238,6 +238,7 @@ th.td-actions{text-align:right}
 /* ---------- Comment cell ---------- */
 .td-comment{max-width:260px;color:var(--text)}
 .td-comment .cmt-snippet{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.td-comment .cmt-sub{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .td-comment .cmt-none{color:var(--muted)}
 .cmt-btn{position:relative}
 .cmt-badge{position:absolute;top:-3px;right:-3px;background:var(--peach);color:var(--navy-900);font-size:9.5px;font-weight:700;min-width:15px;height:15px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center;padding:0 3px}
@@ -257,6 +258,9 @@ th.td-actions{text-align:right}
 .thread{display:flex;flex-direction:column;gap:12px;max-height:46vh;overflow-y:auto;padding-right:4px}
 .thread-empty{color:var(--muted);text-align:center;padding:24px 0;font-size:13.5px}
 .cmt{background:#f4f7fa;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-md);padding:10px 12px}
+.cmt-sys{background:#eef2f6;border-left-color:var(--navy-700)}
+.cmt-sys .cmt-text{color:var(--navy-800);font-weight:600}
+.cmt-tag{display:inline-block;margin-left:6px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--navy-900);color:#fff;border-radius:var(--r-pill);padding:1px 7px;vertical-align:middle}
 .cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--muted);margin-bottom:4px}
 .cmt-author{font-weight:600;color:var(--navy-800)}
 .cmt-text{font-size:13.5px;white-space:pre-wrap;word-break:break-word}
@@ -314,11 +318,11 @@ body{
 .modal{background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(22px) saturate(1.1);backdrop-filter:blur(22px) saturate(1.1)}
 .toast{background:rgba(15,36,51,.84);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);border-left:3px solid var(--sky-600)}
 .toast-success{border-left-color:#2f8662}.toast-error{border-left-color:#c0392b}
-/* Stage tabs — glass segmented island */
-.stage-tabs{border-radius:var(--r-pill)}
+/* Stage tabs — glass segmented island (overflow:hidden keeps the active pill inside the rounded bar) */
+.stage-tabs{border-radius:var(--r-lg);overflow:hidden}
 .stage-tab{transition:background .25s var(--ease-spring),color .2s ease,transform .15s var(--ease-spring)}
 .stage-tab:active{transform:scale(.98)}
-.stage-tab.active{background:linear-gradient(180deg,#1a405b,#0f2433);box-shadow:0 4px 14px rgba(15,36,51,.22)}
+.stage-tab.active{background:linear-gradient(180deg,#1a405b,#0f2433)}
 /* Motion */
 @media (prefers-reduced-motion: no-preference){
   .page{animation:pageIn .3s ease both}
@@ -455,6 +459,10 @@ body{
         <div class="chart-card">
           <h3>Applications by Status</h3>
           <div class="chart-box"><canvas id="chartStatus"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Applications by Age Group</h3>
+          <div class="chart-box"><canvas id="chartAgeGroup"></canvas><div class="no-data" hidden>No data yet</div></div>
         </div>
       </div>
 
@@ -664,6 +672,7 @@ body{
         <div class="form-grid">
           <label class="field span-2"><span>Title *</span><input id="af-title" class="input" required maxlength="255"></label>
           <label class="field"><span>Client Type</span><select id="af-clienttype" class="input"></select></label>
+          <label class="field"><span>Client Age</span><input type="number" min="0" max="120" step="1" id="af-age" class="input"></label>
           <label class="field"><span>Status</span><select id="af-status" class="input"></select></label>
           <label class="field"><span>Submission Date</span><input type="date" id="af-subdate" class="input"></label>
           <label class="field"><span>Completion Date</span><input type="date" id="af-compdate" class="input"></label>
@@ -1046,7 +1055,7 @@ function countByLookup(arr, field, cacheKey) {
 }
 
 /* ---------- Sorting ---------- */
-const NUM_KEYS = new Set(["ExpectedCommission", "ReceivedCommission", "BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "InsuranceTeam", "DaysTaken", "ClaimManagementFee"]);
+const NUM_KEYS = new Set(["ExpectedCommission", "ReceivedCommission", "BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "InsuranceTeam", "DaysTaken", "ClaimManagementFee", "ClientAge"]);
 const DATE_KEYS = new Set(["SubmissionDate", "CompletionDate", "CommissionPaidDate", "LodgementDate", "DecisionDate", "ClaimFeePaidDate"]);
 function sortKind(key) { return NUM_KEYS.has(key) ? "num" : DATE_KEYS.has(key) ? "date" : "text"; }
 function sortVal(row, key) {
@@ -1570,6 +1579,13 @@ function claimsByType(claims, valFn) {
   });
   return { labels: labels, data: data, keys: keys };
 }
+const AGE_GROUPS = ["0-17", "18-29", "30-39", "40-49", "50-59", "60+"];
+function ageGroup(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v); if (isNaN(n)) return null;
+  if (n < 18) return "0-17"; if (n < 30) return "18-29"; if (n < 40) return "30-39";
+  if (n < 50) return "40-49"; if (n < 60) return "50-59"; return "60+";
+}
 function renderCards(containerId, cards) {
   const el = document.getElementById(containerId);
   el.innerHTML = cards.map(c =>
@@ -1590,6 +1606,8 @@ function renderDashboard() {
   const rangeClaims = claims.filter(c => inRange(c.LodgementDate, bounds));
   const active = subApps.filter(a => appStageOf(a) === "active");
   const pipeline = sumBy(active, a => a.ExpectedCommission);
+  const aged = subApps.filter(a => ageGroup(a.ClientAge) !== null);
+  const avgAge = aged.length ? Math.round(aged.reduce((t, a) => t + Number(a.ClientAge), 0) / aged.length) : 0;
   const expected = sumBy(completedApps, a => a.ExpectedCommission);
   const received = sumBy(paidApps, a => a.ReceivedCommission);
   const claimFees = sumBy(claims.filter(c => inRange(c.ClaimFeePaidDate, bounds)), c => c.ClaimManagementFee);
@@ -1601,7 +1619,8 @@ function renderDashboard() {
     { label: "Commission Pipeline", value: pipeline, money: true },
     { label: "Expected (Completed)", value: expected, money: true },
     { label: "Received Commission", value: received, money: true },
-    { label: "Commission Outstanding", value: expected - received, money: true }
+    { label: "Commission Outstanding", value: expected - received, money: true },
+    { label: "Average Client Age", value: avgAge }
   ];
   const claimCards = [
     { label: "Total Claims", value: rangeClaims.length },
@@ -1629,6 +1648,7 @@ function renderDashboard() {
 
   drawDoughnut("chartStatus", countByOrdered(subApps, a => a.Status, APP_STATUSES), STATUS_COLORS,
     { text: String(subApps.length), sub: "Applications" }, k => drillApplications({ status: k }));
+  drawBar("chartAgeGroup", { labels: AGE_GROUPS.slice(), data: AGE_GROUPS.map(g => subApps.filter(a => ageGroup(a.ClientAge) === g).length), keys: AGE_GROUPS.slice() }, C_STEEL, false);
   drawDoughnut("chartClaims", countByOrdered(rangeClaims, c => c.ClaimStatus, CLAIM_STATUSES), CLAIM_STATUS_COLORS,
     { text: String(rangeClaims.length), sub: "Claims" }, k => drillClaims({ status: k }));
 
@@ -1687,6 +1707,7 @@ function appColumns(stage) {
   const cols = [
     { key: "Title", label: "Title", sortable: true, render: a => '<td class="td-title">' + esc(a.Title) + "</td>" },
     { key: "ClientType", label: "Client Type", sortable: true, render: a => "<td>" + esc(a.ClientType || "") + "</td>" },
+    { key: "ClientAge", label: "Age", sortable: true, num: true, render: a => '<td class="td-num">' + (a.ClientAge != null && a.ClientAge !== "" ? esc(a.ClientAge) : '<span class="cmt-none">—</span>') + "</td>" },
     { key: "SubmissionDate", label: "Submitted", sortable: true, render: a => "<td>" + fmtDate(a.SubmissionDate) + "</td>" }
   ];
   if (stage !== "dnc") cols.push({ key: "DaysTaken", label: "Days", sortable: true, num: true, render: a => daysCell(a) });
@@ -1707,7 +1728,8 @@ function appColumns(stage) {
 function commentCell(entity, row) {
   const c = latestComment(entity, row.id);
   if (!c) return '<td class="td-comment"><span class="cmt-none">No comments</span></td>';
-  return '<td class="td-comment"><span class="cmt-snippet" title="' + esc(c.Comment) + '">' + esc(truncate(c.Comment, 80)) + "</span></td>";
+  return '<td class="td-comment"><span class="cmt-snippet" title="' + esc(c.Comment) + '">' + esc(truncate(c.Comment, 80)) + "</span>" +
+    (c._created ? '<span class="cmt-sub">' + esc(fmtDateTime(c._created)) + "</span>" : "") + "</td>";
 }
 function actionsCell(entity, id) {
   const n = commentCount(entity, id);
@@ -1800,6 +1822,7 @@ function openAppModal(item) {
   $("#af-id").value = item ? item.id : "";
   $("#af-title").value = (item && item.Title) || "";
   fillStaticSelect($("#af-clienttype"), CLIENT_TYPES, item ? item.ClientType : "", "Select…");
+  $("#af-age").value = (item && item.ClientAge !== null && item.ClientAge !== undefined) ? item.ClientAge : "";
   fillStaticSelect($("#af-status"), APP_STATUSES, item ? item.Status : "In Progress", "Select…");
   $("#af-subdate").value = dateInputVal(item && item.SubmissionDate);
   $("#af-compdate").value = dateInputVal(item && item.CompletionDate);
@@ -1838,14 +1861,15 @@ function openCommentsModal(entity, id) {
 }
 function renderThread() {
   if (!commentCtx) return;
-  const list = commentsFor(commentCtx.entity, commentCtx.id);
+  const list = commentsFor(commentCtx.entity, commentCtx.id).slice().reverse(); // newest first
   const el = $("#comments-thread");
   if (!list.length) { el.innerHTML = '<div class="thread-empty">No comments yet. Add the first one below.</div>'; return; }
-  el.innerHTML = list.map(c =>
-    '<div class="cmt"><div class="cmt-meta"><span class="cmt-author">' + esc(c._author || "Unknown") + "</span><span>" + esc(fmtDateTime(c._created)) + "</span></div>" +
-    '<div class="cmt-text">' + esc(c.Comment || "") + "</div></div>"
-  ).join("");
-  el.scrollTop = el.scrollHeight;
+  el.innerHTML = list.map(c => {
+    const sys = /^Status:/.test(c.Comment || "");
+    return '<div class="cmt' + (sys ? " cmt-sys" : "") + '"><div class="cmt-meta"><span class="cmt-author">' + esc(c._author || "Unknown") + (sys ? '<span class="cmt-tag">status</span>' : "") + "</span><span>" + esc(fmtDateTime(c._created)) + "</span></div>" +
+      '<div class="cmt-text">' + esc(c.Comment || "") + "</div></div>";
+  }).join("");
+  el.scrollTop = 0;
 }
 async function addComment() {
   if (!commentCtx) return;
@@ -1964,12 +1988,23 @@ function confirmStatusPrompt() {
   closeModal("status-modal");
   quickSaveStatus(ctx.entity, ctx.id, res.patch, res.reasonComment);
 }
-async function quickSaveStatus(entity, id, patch, reasonComment) {
+async function quickSaveStatus(entity, id, patch, reason) {
+  const statusKey = entity === "applications" ? "Status" : "ClaimStatus";
+  const rec = recordFor(entity, id);
+  const oldStatus = rec ? (rec[statusKey] || "") : "";
+  const newStatus = patch[statusKey] || "";
   try {
     await updateItem(LISTS[entity], id, patch);
-    if (reasonComment) await createItem(LISTS.comments, { Title: truncate(reasonComment, 80), Comment: reasonComment, ApplicationLookupId: Number(id) });
+    // Phase tracker: log the transition as a timestamped comment (audit + time-in-stage)
+    if (newStatus) {
+      let body = "Status: " + (oldStatus || "New") + " → " + newStatus;
+      if (reason) body += " — " + reason;
+      const cf = { Title: truncate(body, 80), Comment: body };
+      cf[commentFk(entity)] = Number(id);
+      try { await createItem(LISTS.comments, cf); } catch (e) { console.warn("Status log comment failed:", e.message); }
+    }
     await loadList(entity);
-    if (reasonComment) await loadList("comments");
+    await loadList("comments");
     showToast("Status updated.");
   } catch (err) {
     console.error(err);
@@ -2358,6 +2393,7 @@ $("#app-form").addEventListener("submit", async e => {
   const fields = {
     Title: $("#af-title").value.trim(),
     ClientType: $("#af-clienttype").value || null,
+    ClientAge: numOrNull($("#af-age").value),
     SubmissionDate: $("#af-subdate").value || null,
     CompletionDate: $("#af-compdate").value || null,
     InsurerLookupId: $("#af-insurer").value ? Number($("#af-insurer").value) : null,
