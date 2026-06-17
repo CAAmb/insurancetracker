@@ -223,6 +223,14 @@ th.td-actions{text-align:right}
 @keyframes shimmer{100%{transform:translateX(100%)}}
 .sk-card{height:96px;border-radius:var(--r-lg)}
 .sk-line{height:13px;margin:6px 0}
+/* Bulk import */
+.imp-summary{font-size:13px;color:var(--text);line-height:1.65}
+.imp-summary b{color:var(--navy-900)}
+.imp-pill{display:inline-block;background:#eef2f6;border:1px solid var(--border);border-radius:var(--r-pill);padding:2px 9px;font-size:12px;margin:2px 4px 2px 0}
+.imp-pill.warn{background:#faf0e3;border-color:#f0d9b0;color:#92600a}
+.progress-track{height:10px;background:#e6ebef;border-radius:var(--r-pill);overflow:hidden;max-width:420px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--navy-700),var(--navy-900));width:0;transition:width .2s ease}
+.imp-err{color:var(--red)}
 @media(prefers-reduced-motion:reduce){.skeleton::after{animation:none}.spinner{animation-duration:2s}}
 
 /* ---------- Stage tabs ---------- */
@@ -651,6 +659,21 @@ body{
               <thead><tr><th>Name</th><th>Active</th><th class="td-actions">Actions</th></tr></thead>
               <tbody id="loadingdiscounts-tbody"></tbody>
             </table>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="card-header">
+            <div>
+              <h2>Bulk Import</h2>
+              <p class="card-note">One-time historic load from a cleaned CSV. Resolves adviser/insurer/implementation-manager by name (creating any that don't exist) and creates the applications. Preview first — nothing writes until you confirm.</p>
+            </div>
+          </div>
+          <div style="padding:16px 18px">
+            <input type="file" id="import-file" accept=".csv,text/csv" class="input" style="max-width:340px">
+            <div id="import-preview" style="margin-top:14px"></div>
+            <div id="import-progress" style="margin-top:12px"></div>
+            <div id="import-report" style="margin-top:12px"></div>
+            <div style="margin-top:14px"><button id="import-run" class="btn" disabled>Import Applications</button></div>
           </div>
         </div>
       </div>
@@ -2264,6 +2287,108 @@ async function toggleActive(key, item, btn) {
   renderSettings();
 }
 
+/* ================= Bulk import (one-time historic load) ================= */
+let importRows = null;
+function parseCSV(text) {
+  text = text.replace(/^﻿/, "");
+  const rows = []; let row = [], field = "", i = 0, inQ = false;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i += 2; continue; } inQ = false; i++; continue; }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { inQ = true; i++; continue; }
+    if (ch === ',') { row.push(field); field = ""; i++; continue; }
+    if (ch === '\r') { i++; continue; }
+    if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
+    field += ch; i++;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function csvToObjects(text) {
+  const rows = parseCSV(text).filter(r => r.some(c => String(c).trim() !== ""));
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(r => { const o = {}; headers.forEach((h, idx) => { o[h] = (r[idx] || "").trim(); }); return o; });
+}
+function importDistinct(objs, key) { const s = new Set(); objs.forEach(o => { const v = (o[key] || "").trim(); if (v) s.add(v); }); return Array.from(s).sort(); }
+function importMissing(values, cacheKey) { return values.filter(v => !state[cacheKey].some(x => String(x.Title || "").trim().toLowerCase() === v.toLowerCase())); }
+function onImportFile(e) {
+  const file = e.target.files && e.target.files[0];
+  $("#import-report").innerHTML = ""; $("#import-progress").innerHTML = "";
+  if (!file) { importRows = null; $("#import-run").disabled = true; $("#import-preview").innerHTML = ""; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    try { importRows = csvToObjects(String(reader.result)); renderImportPreview(importRows); }
+    catch (err) { $("#import-preview").innerHTML = '<span class="imp-err">Could not read CSV: ' + esc(err.message) + "</span>"; importRows = null; $("#import-run").disabled = true; }
+  };
+  reader.readAsText(file);
+}
+function renderImportPreview(objs) {
+  if (!objs.length) { $("#import-preview").innerHTML = '<span class="imp-err">No rows found in the file.</span>'; $("#import-run").disabled = true; return; }
+  const newIns = importMissing(importDistinct(objs, "Insurer"), "insurers");
+  const newAdv = importMissing(importDistinct(objs, "Adviser"), "advisers");
+  const newIm = importMissing(importDistinct(objs, "ImplementationManager"), "implmanagers");
+  const byStatus = {}; objs.forEach(o => { const s = o.Status || "—"; byStatus[s] = (byStatus[s] || 0) + 1; });
+  const pills = arr => arr.length ? arr.map(v => '<span class="imp-pill warn">+ ' + esc(v) + "</span>").join("") : '<span style="color:var(--muted)">none — all matched ✓</span>';
+  $("#import-preview").innerHTML =
+    '<div class="imp-summary"><b>' + objs.length + "</b> applications ready.<br>" +
+    "By status: " + Object.keys(byStatus).map(s => esc(s) + " " + byStatus[s]).join(" · ") + "<br><br>" +
+    "<b>New insurers:</b> " + pills(newIns) + "<br><b>New advisers:</b> " + pills(newAdv) + "<br><b>New implementation managers:</b> " + pills(newIm) + "</div>";
+  $("#import-run").disabled = false;
+}
+async function importEnsureRef(cacheKey, values) {
+  const missing = importMissing(values, cacheKey);
+  for (const v of missing) await createItem(LISTS[cacheKey], { Title: v, Active: true });
+  if (missing.length) await loadList(cacheKey);
+  const map = {}; state[cacheKey].forEach(x => { map[String(x.Title || "").trim().toLowerCase()] = x.id; });
+  return map;
+}
+async function runImport() {
+  if (!importRows || !importRows.length) return;
+  const btn = $("#import-run");
+  if (!(await confirmDialog("Import " + importRows.length + " applications into SharePoint? This creates new records."))) return;
+  btn.disabled = true; $("#import-report").innerHTML = "";
+  try {
+    $("#import-progress").textContent = "Preparing reference data…";
+    const insMap = await importEnsureRef("insurers", importDistinct(importRows, "Insurer"));
+    const advMap = await importEnsureRef("advisers", importDistinct(importRows, "Adviser"));
+    const imMap = await importEnsureRef("implmanagers", importDistinct(importRows, "ImplementationManager"));
+    const lookId = (map, v) => { v = (v || "").trim().toLowerCase(); return v && map[v] ? Number(map[v]) : null; };
+    let done = 0, failed = 0; const errors = [];
+    $("#import-progress").innerHTML = '<div class="progress-track"><div class="progress-fill" id="imp-fill"></div></div><div id="imp-count" style="font-size:12.5px;color:var(--muted);margin-top:6px"></div>';
+    const conc = 4;
+    for (let i = 0; i < importRows.length; i += conc) {
+      const slice = importRows.slice(i, i + conc);
+      await Promise.all(slice.map(async r => {
+        const fields = {
+          Title: r.Title || "(untitled)", ClientType: r.ClientType || null, ClientAge: numOrNull(r.ClientAge),
+          SubmissionDate: r.SubmissionDate || null, CompletionDate: r.CompletionDate || null,
+          InsurerLookupId: lookId(insMap, r.Insurer), AdviserLookupId: lookId(advMap, r.Adviser),
+          ImplementationManagerLookupId: lookId(imMap, r.ImplementationManager), Status: r.Status || null,
+          ExpectedCommission: numOrNull(r.ExpectedCommission), ReceivedCommission: numOrNull(r.ReceivedCommission),
+          CommissionPaidDate: r.CommissionPaidDate || null, Notes: r.Notes || ""
+        };
+        try { await createItem(LISTS.applications, stripEmpty(fields)); done++; }
+        catch (err) { failed++; errors.push((r.Title || "row") + ": " + (err.message || err)); }
+      }));
+      const pct = Math.round(((i + slice.length) / importRows.length) * 100);
+      if ($("#imp-fill")) $("#imp-fill").style.width = pct + "%";
+      if ($("#imp-count")) $("#imp-count").textContent = (done + failed) + " / " + importRows.length + " processed";
+    }
+    await loadList("applications");
+    $("#import-progress").innerHTML = "";
+    $("#import-report").innerHTML = '<div class="imp-summary"><b>Done.</b> ' + done + " imported" + (failed ? ', <span class="imp-err">' + failed + " failed</span>" : "") + "." +
+      (errors.length ? '<details style="margin-top:6px"><summary>Errors (' + errors.length + ")</summary><div class=\"imp-err\" style=\"margin-top:4px\">" + errors.slice(0, 50).map(esc).join("<br>") + "</div></details>" : "") + "</div>";
+    showToast(done + " applications imported.");
+  } catch (err) {
+    console.error(err); $("#import-progress").innerHTML = ""; showToast(friendly(err), "error");
+  }
+  btn.disabled = false;
+}
+
 /* ================= Events ================= */
 document.querySelectorAll(".nav-link").forEach(b => b.addEventListener("click", () => navigate(b.dataset.page)));
 $("#menu-btn").addEventListener("click", () => {
@@ -2539,6 +2664,9 @@ $("#managed-form").addEventListener("submit", async e => {
   const fields = { Title: $("#mgf-title").value.trim(), Active: $("#mgf-active").checked };
   await saveRecord(managedKey, $("#mgf-id").value, fields, "managed-modal", e.target);
 });
+// Bulk import (one-time)
+$("#import-file").addEventListener("change", onImportFile);
+$("#import-run").addEventListener("click", runImport);
 
 /* --- Auth events --- */
 $("#signin-btn").addEventListener("click", () => {
