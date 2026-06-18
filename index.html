@@ -944,6 +944,9 @@ const charts = {};
 let currentPage = "dashboard";
 let msalApp = null;
 let confirmResolve = null;
+let suppressAuthRedirect = false; // true during background auto-refresh
+let refreshing = false;           // guard against overlapping background refreshes
+let importing = false;            // bulk import in progress
 const filtersRestored = { applications: false, claims: false };
 const LS = { filters: p => "insTracker.filters." + p, sort: p => "insTracker.sort." + p, dash: "insTracker.dashRange" };
 
@@ -1249,6 +1252,7 @@ async function getToken() {
     return res.accessToken;
   } catch (err) {
     if (err instanceof msal.InteractionRequiredAuthError) {
+      if (suppressAuthRedirect) throw err; // background refresh: never yank the user to a redirect
       await msalApp.acquireTokenRedirect({ scopes: SCOPES });
       return new Promise(() => {}); // page is redirecting
     }
@@ -1282,6 +1286,7 @@ async function graphRequest(url, options) {
 // mismatches (Graph addresses lists by their internal name, which often differs from the title).
 const listSeg = {};
 async function resolveLists() {
+  if (Object.keys(listSeg).length) return; // resolve once per session (lists don't change at runtime)
   const url = GRAPH_LISTS_BASE.replace(/\/$/, "") + "?$select=id,name,displayName&$top=400";
   const data = await graphRequest(url);
   const all = data.value || [];
@@ -1315,33 +1320,70 @@ function deleteItem(listName, id) {
 }
 
 /* ================= Data layer ================= */
+// _created / _author / _modified come from the list item itself (SharePoint built-ins), not fields
+function mapItem(it) {
+  return Object.assign({
+    id: String(it.id),
+    _created: it.createdDateTime || "",
+    _modified: it.lastModifiedDateTime || "",
+    _author: (it.createdBy && it.createdBy.user && it.createdBy.user.displayName) || ""
+  }, it.fields);
+}
+// Full fetch (used at init fallback, after writes, and as the delta fallback)
 async function loadList(key) {
   let items;
   try {
     items = await fetchAllItems(LISTS[key]);
   } catch (err) {
-    // surface WHICH list failed so a missing/renamed list is easy to pinpoint
     throw new Error('List "' + LISTS[key] + '" — ' + (err && err.message ? err.message : String(err)));
   }
-  // _created / _author come from the list item itself (SharePoint built-ins), not fields
-  state[key] = items.map(it => Object.assign({
-    id: String(it.id),
-    _created: it.createdDateTime || "",
-    _author: (it.createdBy && it.createdBy.user && it.createdBy.user.displayName) || ""
-  }, it.fields));
+  state[key] = items.map(mapItem);
+}
+// Delta sync — first call pulls everything + a delta token; later calls fetch ONLY what changed.
+// Falls back to a full loadList if delta is unavailable for a list or the token expires.
+const deltaTokens = {};
+const deltaBroken = {};
+async function deltaSync(key) {
+  if (deltaBroken[key]) { await loadList(key); return; }
+  try {
+    if (!deltaTokens[key]) {
+      let url = GRAPH_LISTS_BASE + segFor(LISTS[key]) + "/items/delta?$expand=fields&$top=500";
+      const items = []; let dl = null;
+      while (url) { const d = await graphRequest(url); (d.value || []).forEach(x => items.push(x)); if (d["@odata.nextLink"]) url = d["@odata.nextLink"]; else { dl = d["@odata.deltaLink"] || null; url = null; } }
+      state[key] = items.filter(x => !x["@removed"]).map(mapItem);
+      if (dl) deltaTokens[key] = dl; else deltaBroken[key] = true; // no token returned → use full fetch next time
+      return;
+    }
+    let url = deltaTokens[key]; const changes = []; let dl = null;
+    while (url) { const d = await graphRequest(url); (d.value || []).forEach(x => changes.push(x)); if (d["@odata.nextLink"]) url = d["@odata.nextLink"]; else { dl = d["@odata.deltaLink"] || null; url = null; } }
+    if (dl) deltaTokens[key] = dl;
+    if (changes.length) {
+      const arr = state[key], idx = {}; arr.forEach((x, i) => { idx[x.id] = i; });
+      changes.forEach(x => {
+        const id = String(x.id);
+        if (x["@removed"]) { if (idx[id] !== undefined) arr[idx[id]] = null; }
+        else { const m = mapItem(x); if (idx[id] !== undefined) arr[idx[id]] = m; else { arr.push(m); idx[id] = arr.length - 1; } }
+      });
+      state[key] = arr.filter(Boolean);
+    }
+  } catch (err) {
+    const m = err && err.message ? err.message : String(err);
+    if (/\b410\b|resync/i.test(m)) delete deltaTokens[key]; // token expired → re-init next time
+    else deltaBroken[key] = true;                            // delta unsupported → full fetch from here on
+    await loadList(key);                                     // keep data correct via the proven path
+  }
 }
 async function loadAll() {
   await resolveLists(); // map list display names → IDs first
-  // Core lists must exist; if any fail the error names the offending list
   const core = ["advisers", "insurers", "settings", "applications", "claims"];
-  await Promise.all(core.map(loadList));
-  // Optional lists — a missing one shouldn't block the whole app (features degrade until it exists)
+  await Promise.all(core.map(deltaSync)); // a failed core list still surfaces its name (via loadList fallback)
   const optional = ["comments", "implmanagers", "loadingdiscounts"];
   await Promise.all(optional.map(async key => {
-    try { await loadList(key); }
-    catch (err) { state[key] = []; console.warn('Optional list "' + LISTS[key] + '" unavailable — feature stays empty until it exists.', err.message); }
+    try { await deltaSync(key); }
+    catch (err) { state[key] = state[key] || []; console.warn('Optional list "' + LISTS[key] + '" unavailable — feature stays empty until it exists.', err.message); }
   }));
 }
+function fullResync() { Object.keys(deltaTokens).forEach(k => delete deltaTokens[k]); Object.keys(deltaBroken).forEach(k => delete deltaBroken[k]); return loadAll(); }
 /* ---------- Comments (shared by applications + claims) ---------- */
 function commentFk(entity) { return entity === "claims" ? "ClaimLookupId" : "ApplicationLookupId"; }
 function commentsFor(entity, id) {
@@ -2404,7 +2446,7 @@ async function runImport() {
   const spec = importSpec();
   const btn = $("#import-run");
   if (!(await confirmDialog("Import " + importRows.length + " " + spec.noun + " into SharePoint? This creates new records.", { title: "Confirm Import", confirmLabel: "Import " + importRows.length, danger: false }))) return;
-  btn.disabled = true; $("#import-report").innerHTML = "";
+  btn.disabled = true; importing = true; $("#import-report").innerHTML = "";
   try {
     $("#import-progress").textContent = "Preparing reference data…";
     const maps = {};
@@ -2431,7 +2473,44 @@ async function runImport() {
   } catch (err) {
     console.error(err); $("#import-progress").innerHTML = ""; showToast(friendly(err), "error");
   }
-  btn.disabled = false;
+  importing = false; btn.disabled = false;
+}
+
+/* ================= Live updates (background auto-refresh) ================= */
+// A signature that changes whenever any list gains/loses an item or an item is edited.
+function dataSignature() {
+  return Object.keys(LISTS).map(k => {
+    const arr = state[k] || [];
+    let mx = "";
+    for (const x of arr) { if (x._modified && x._modified > mx) mx = x._modified; }
+    return k + ":" + arr.length + ":" + mx;
+  }).join("|");
+}
+function appBusy() {
+  if (importing) return true;
+  return Array.from(document.querySelectorAll(".modal-overlay")).some(m => !m.hidden);
+}
+async function silentRefresh() {
+  if (refreshing) return;
+  if (!msalApp || !msalApp.getActiveAccount()) return;
+  if (appBusy()) return; // don't pull data out from under an open editor / import
+  refreshing = true;
+  suppressAuthRedirect = true;
+  try {
+    const before = dataSignature();
+    await loadAll();
+    if (dataSignature() !== before && !appBusy()) renderActivePage();
+  } catch (e) {
+    /* silent — a background refresh must never interrupt the user */
+  } finally {
+    suppressAuthRedirect = false;
+    refreshing = false;
+  }
+}
+function startLiveUpdates() {
+  setInterval(() => { if (!document.hidden) silentRefresh(); }, 10000); // every 10s while the tab is visible (delta = cheap)
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) silentRefresh(); });
+  window.addEventListener("focus", silentRefresh); // catch tab/window re-focus
 }
 
 /* ================= Events ================= */
@@ -2451,7 +2530,7 @@ document.querySelectorAll("[data-refresh]").forEach(b => b.addEventListener("cli
   b.disabled = true;
   showSkeletons();
   try {
-    await loadAll();
+    await fullResync(); // manual refresh = authoritative full reload (resets delta tokens)
     renderActivePage();
     showToast("Data refreshed.");
   } catch (err) {
@@ -2789,6 +2868,7 @@ async function init() {
   hideOverlay();
   $("#app").hidden = false;
   navigate("dashboard");
+  startLiveUpdates(); // begin background auto-refresh so other staff's changes appear without a manual reload
 }
 init();
 //[S3-end]
