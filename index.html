@@ -1785,6 +1785,13 @@ function statusSelectHTML(entity, id, current, statuses, badgeMap) {
   return '<select class="status-select ' + cls + '" data-status-entity="' + entity + '" data-id="' + id + '">' +
     statuses.map(s => "<option" + (s === current ? " selected" : "") + ">" + esc(s) + "</option>").join("") + "</select>";
 }
+// Inline Location picker (active applications) — saves immediately on change, like the status select
+function locationSelectHTML(id, current) {
+  const cls = current ? "ss-slate" : "ss-gray";
+  return '<select class="status-select ' + cls + '" data-location-id="' + id + '">' +
+    '<option value=""' + (!current ? " selected" : "") + ">—</option>" +
+    APP_LOCATIONS.map(l => "<option" + (l === current ? " selected" : "") + ">" + esc(l) + "</option>").join("") + "</select>";
+}
 function renderApplications() {
   fillAppFilterSelects();
   restoreFilters("applications");
@@ -1819,7 +1826,7 @@ function appColumns(stage) {
   cols.push({ key: "LoadingDiscount", label: "Loading", sortable: true, render: a => { const v = lookupTitle(a, "LoadingDiscount", "loadingdiscounts"); return "<td>" + (v ? '<span class="badge badge-teal">' + esc(v) + "</span>" : '<span class="cmt-none">—</span>') + "</td>"; } });
   cols.push({ key: "Adviser", label: "Adviser", sortable: true, render: a => "<td>" + esc(lookupTitle(a, "Adviser", "advisers")) + "</td>" });
   cols.push({ key: "ImplementationManager", label: "Impl. Manager", sortable: true, render: a => { const v = lookupTitle(a, "ImplementationManager", "implmanagers"); return "<td>" + (v ? esc(v) : '<span class="cmt-none">—</span>') + "</td>"; } });
-  if (stage === "active") cols.push({ key: "Location", label: "Location", sortable: true, render: a => "<td>" + (a.Location ? '<span class="badge badge-slate">' + esc(a.Location) + "</span>" : '<span class="cmt-none">—</span>') + "</td>" });
+  if (stage === "active") cols.push({ key: "Location", label: "Location", sortable: true, render: a => "<td>" + locationSelectHTML(a.id, a.Location || "") + "</td>" });
   cols.push({ key: "Status", label: "Status", sortable: true, render: a => "<td>" + statusSelectHTML("applications", a.id, a.Status, APP_STATUSES, STATUS_BADGE) + "</td>" });
   if (stage !== "dnc") cols.push({ key: "TotalCommission", label: "Full Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.TotalCommission) + "</td>" });
   if (stage === "paid") {
@@ -2125,6 +2132,17 @@ async function quickSaveStatus(entity, id, patch, reason) {
     await loadList(entity);
     await loadList("comments");
     showToast("Status updated.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
+  renderActivePage();
+}
+async function quickSaveLocation(id, value) {
+  try {
+    await updateItem(LISTS.applications, id, { Location: value || "" });
+    await loadList("applications");
+    showToast(value ? "Location updated." : "Location cleared.");
   } catch (err) {
     console.error(err);
     showToast(friendly(err), "error");
@@ -2629,8 +2647,14 @@ $("#app-export-csv").addEventListener("click", exportApplicationsCSV);
 // Inline status change (applications + claims share this delegated handler)
 document.addEventListener("change", e => {
   const sel = e.target.closest(".status-select");
-  if (!sel) return;
+  if (!sel || !sel.dataset.statusEntity) return;
   changeStatusInline(sel.dataset.statusEntity, sel.dataset.id, sel.value);
+});
+// Inline location change (active applications) — saves immediately
+document.addEventListener("change", e => {
+  const sel = e.target.closest("[data-location-id]");
+  if (!sel) return;
+  quickSaveLocation(sel.dataset.locationId, sel.value);
 });
 // Premium button ripple (skips when reduced motion is preferred)
 document.addEventListener("click", e => {
