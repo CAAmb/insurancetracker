@@ -91,6 +91,19 @@ button{font-family:inherit}
 #menu-btn{background:none;border:none;color:#fff;cursor:pointer;padding:6px;display:inline-flex}
 .topbar-title{font-weight:600}
 #backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:46}
+/* ---------- Collapsible sidebar (any screen size) ---------- */
+#sidebar{transition:transform .22s ease}
+#main{transition:margin-left .22s ease,padding-left .22s ease}
+#sidebar-toggle{position:absolute;top:16px;right:12px;background:rgba(255,255,255,.08);border:none;color:#fff;cursor:pointer;width:28px;height:28px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;transition:background .15s;z-index:2}
+#sidebar-toggle:hover{background:rgba(255,255,255,.18)}
+#sidebar-show{position:fixed;top:16px;left:14px;z-index:48;background:var(--navy-900);color:#fff;border:none;cursor:pointer;width:38px;height:38px;border-radius:9px;display:none;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(8,21,38,.28)}
+#sidebar-show:hover{background:var(--navy-800)}
+@media(min-width:901px){
+  #app.sidebar-hidden #sidebar{transform:translateX(-100%)}
+  #app.sidebar-hidden #main{margin-left:0;padding-left:60px}
+  #app.sidebar-hidden #sidebar-show{display:inline-flex}
+}
+@media(max-width:900px){ #sidebar-toggle{display:none} }
 
 /* ---------- Page header ---------- */
 .page-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
@@ -397,6 +410,7 @@ body{
   <div id="backdrop" hidden></div>
 
   <aside id="sidebar">
+    <button id="sidebar-toggle" aria-label="Hide sidebar" title="Hide sidebar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <div class="brand">
       <img class="brand-logo-img" src="CAA_White.png" alt="Coastal Advisory">
       <div class="brand-badge">Mat's Amazing Insurance Tracker</div>
@@ -428,6 +442,7 @@ body{
       </button>
     </div>
   </aside>
+  <button id="sidebar-show" aria-label="Show sidebar" title="Show menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
 
   <main id="main">
 
@@ -618,7 +633,7 @@ body{
           </div>
           <div class="table-wrap">
             <table class="table-compact">
-              <thead><tr><th>Name</th><th>Email</th><th>Active</th><th class="td-actions">Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Email</th><th>Team</th><th>Active</th><th class="td-actions">Actions</th></tr></thead>
               <tbody id="advisers-tbody"></tbody>
             </table>
           </div>
@@ -715,14 +730,14 @@ body{
           <label class="field"><span>Completion Date</span><input type="date" id="af-compdate" class="input"></label>
           <label class="field"><span>Insurer</span><select id="af-insurer" class="input"></select></label>
           <label class="field"><span>Adviser</span><select id="af-adviser" class="input"></select></label>
-          <label class="field checkbox-field span-2"><input type="checkbox" id="af-team"><span>Insurance Team Application</span></label>
           <label class="field span-2"><span>Implementation Manager</span><select id="af-implmgr" class="input"></select></label>
           <label class="field span-2"><span>Location <span style="color:var(--muted);font-weight:600">· who it's with</span></span><select id="af-location" class="input"></select></label>
           <label class="field span-2" id="af-loading-field" hidden><span>Loading Discount <span style="color:var(--accent);font-weight:600">· Acenda</span></span><select id="af-loading" class="input"></select></label>
-          <label class="field"><span>Full Commission (AUD) <span style="color:var(--muted);font-weight:600">· whole of business</span></span><input type="number" step="any" id="af-fullcomm" class="input"></label>
-          <label class="field"><span>Expected Commission (AUD) <span style="color:var(--muted);font-weight:600">· fee we receive</span></span><input type="number" step="any" id="af-expected" class="input"></label>
-          <label class="field"><span>Received Commission (AUD)</span><input type="number" step="any" id="af-received" class="input"></label>
+          <label class="field"><span>Expected Commission — Total (AUD)</span><input type="number" step="any" id="af-expected" class="input"></label>
+          <label class="field"><span>Received Commission — Total (AUD)</span><input type="number" step="any" id="af-received" class="input"></label>
+          <label class="field span-2" id="af-teamfee-field" hidden><span>Received — Insurance Team (AUD) <span style="color:var(--accent);font-weight:600">· external adviser only</span></span><input type="number" step="any" id="af-teamreceived" class="input"></label>
           <label class="field"><span>Commission Paid Date</span><input type="date" id="af-paiddate" class="input"></label>
+          <div class="field"></div>
           <label class="field span-2"><span>Commission Notes</span><textarea id="af-commnotes" class="input" rows="2"></textarea></label>
           <label class="field span-2"><span>Notes</span><textarea id="af-notes" class="input" rows="3"></textarea></label>
         </div>
@@ -808,6 +823,7 @@ body{
         <div class="form-grid">
           <label class="field span-2"><span>Name *</span><input id="advf-title" class="input" required maxlength="255"></label>
           <label class="field span-2"><span>Email</span><input id="advf-email" type="email" class="input"></label>
+          <label class="field checkbox-field span-2"><input type="checkbox" id="advf-team"><span>Insurance Team member <span style="color:var(--muted);font-weight:600">· keeps the full commission; external advisers earn a team fee instead</span></span></label>
           <label class="field checkbox-field span-2"><input type="checkbox" id="advf-active" checked><span>Active</span></label>
         </div>
       </div>
@@ -1098,7 +1114,7 @@ function countByLookup(arr, field, cacheKey) {
 }
 
 /* ---------- Sorting ---------- */
-const NUM_KEYS = new Set(["TotalCommission", "ExpectedCommission", "ReceivedCommission", "BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "InsuranceTeam", "DaysTaken", "ClaimManagementFee", "ClientAge"]);
+const NUM_KEYS = new Set(["ExpectedCommission", "ReceivedCommission", "TeamReceivedCommission", "BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "InsuranceTeam", "DaysTaken", "ClaimManagementFee", "ClientAge"]);
 const DATE_KEYS = new Set(["SubmissionDate", "CompletionDate", "CommissionPaidDate", "LodgementDate", "DecisionDate", "ClaimFeePaidDate"]);
 function sortKind(key) { return NUM_KEYS.has(key) ? "num" : DATE_KEYS.has(key) ? "date" : "text"; }
 function sortVal(row, key) {
@@ -1696,9 +1712,10 @@ function renderDashboard() {
   const pipeline = sumBy(active, a => a.ExpectedCommission);
   const aged = subApps.filter(a => ageGroup(a.ClientAge) !== null);
   const avgAge = aged.length ? Math.round(aged.reduce((t, a) => t + Number(a.ClientAge), 0) / aged.length) : 0;
-  const totalComm = sumBy(subApps, a => a.TotalCommission);          // full commission written across the business
-  const expected = sumBy(completedApps, a => a.ExpectedCommission);  // our fee, recognised at completion
-  const received = sumBy(paidApps, a => a.ReceivedCommission);
+  const expected = sumBy(completedApps, a => a.ExpectedCommission);  // total expected, recognised at completion
+  const received = sumBy(paidApps, a => a.ReceivedCommission);       // total received
+  // Insurance team's revenue: full received for team apps, the team fee for external apps (keyed on payment date)
+  const teamReceived = paidApps.reduce((t, a) => t + appTeamReceived(a), 0);
   // Average days to complete (submission → completion) for apps completed in range
   const completedWithDays = completedApps.filter(a => a.SubmissionDate && a.CompletionDate);
   const avgDays = completedWithDays.length ? Math.round(completedWithDays.reduce((t, a) => t + daysBetween(a.SubmissionDate, a.CompletionDate), 0) / completedWithDays.length) : 0;
@@ -1708,10 +1725,10 @@ function renderDashboard() {
   const appCards = [
     { label: "Total Applications", value: subApps.length },
     { label: "Active Applications", value: active.length },
-    { label: "Total Commission (Business)", value: totalComm, money: true },
     { label: "Commission Pipeline", value: pipeline, money: true },
     { label: "Expected (Completed)", value: expected, money: true },
-    { label: "Received Commission", value: received, money: true },
+    { label: "Received (Total)", value: received, money: true },
+    { label: "Insurance Team Revenue", value: teamReceived, money: true },
     { label: "Commission Outstanding", value: expected - received, money: true },
     { label: "Avg Days to Complete", value: avgDays },
     { label: "Average Client Age", value: avgAge }
@@ -1828,12 +1845,12 @@ function appColumns(stage) {
   cols.push({ key: "ImplementationManager", label: "Impl. Manager", sortable: true, render: a => { const v = lookupTitle(a, "ImplementationManager", "implmanagers"); return "<td>" + (v ? esc(v) : '<span class="cmt-none">—</span>') + "</td>"; } });
   if (stage === "active") cols.push({ key: "Location", label: "Location", sortable: true, render: a => "<td>" + locationSelectHTML(a.id, a.Location || "") + "</td>" });
   cols.push({ key: "Status", label: "Status", sortable: true, render: a => "<td>" + statusSelectHTML("applications", a.id, a.Status, APP_STATUSES, STATUS_BADGE) + "</td>" });
-  if (stage !== "dnc") cols.push({ key: "TotalCommission", label: "Full Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.TotalCommission) + "</td>" });
   if (stage === "paid") {
-    cols.push({ key: "ReceivedCommission", label: "Received Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ReceivedCommission) + "</td>" });
+    cols.push({ key: "ReceivedCommission", label: "Received (Total)", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ReceivedCommission) + "</td>" });
+    cols.push({ key: "TeamReceivedCommission", label: "Team Fee", sortable: true, num: true, render: a => '<td class="td-num">' + (a.TeamReceivedCommission != null && a.TeamReceivedCommission !== "" ? fmtAUD(a.TeamReceivedCommission) : '<span class="cmt-none">—</span>') + "</td>" });
     cols.push({ key: "CommissionPaidDate", label: "Comm. Paid", sortable: true, render: a => "<td>" + fmtDate(a.CommissionPaidDate) + "</td>" });
   } else if (stage !== "dnc") {
-    cols.push({ key: "ExpectedCommission", label: "Expected Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ExpectedCommission) + "</td>" });
+    cols.push({ key: "ExpectedCommission", label: "Expected (Total)", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ExpectedCommission) + "</td>" });
   }
   cols.push({ key: "comments", label: "Latest Comment", sortable: false, render: a => commentCell("applications", a) });
   return cols;
@@ -1915,7 +1932,7 @@ function csvValForApp(a, key) {
   if (key === "CompletionDate") return fmtDate(a.CompletionDate);
   if (key === "CommissionPaidDate") return fmtDate(a.CommissionPaidDate);
   if (key === "DaysTaken") { const d = daysTaken(a); return d === null ? "" : d; }
-  if (key === "TotalCommission" || key === "ExpectedCommission" || key === "ReceivedCommission") return a[key] != null && a[key] !== "" ? Number(a[key]).toFixed(2) : "";
+  if (key === "ExpectedCommission" || key === "ReceivedCommission" || key === "TeamReceivedCommission") return a[key] != null && a[key] !== "" ? Number(a[key]).toFixed(2) : "";
   return a[key] == null ? "" : a[key];
 }
 function exportApplicationsCSV() {
@@ -1942,22 +1959,40 @@ function openAppModal(item) {
   $("#af-compdate").value = dateInputVal(item && item.CompletionDate);
   fillLookupSelect($("#af-insurer"), state.insurers, item ? item.InsurerLookupId : "", "Select insurer…");
   fillLookupSelect($("#af-adviser"), state.advisers, item ? item.AdviserLookupId : "", "Select adviser…");
-  $("#af-team").checked = item ? !!item.InsuranceTeam : false;
   fillLookupSelect($("#af-implmgr"), state.implmanagers, item ? item.ImplementationManagerLookupId : "", "Select…");
   fillStaticSelect($("#af-location"), APP_LOCATIONS, item ? item.Location : "", "Select…");
   fillLookupSelect($("#af-loading"), state.loadingdiscounts, item ? item.LoadingDiscountLookupId : "", "None");
-  $("#af-fullcomm").value = (item && item.TotalCommission !== null && item.TotalCommission !== undefined) ? item.TotalCommission : "";
   $("#af-expected").value = (item && item.ExpectedCommission !== null && item.ExpectedCommission !== undefined) ? item.ExpectedCommission : "";
   $("#af-received").value = (item && item.ReceivedCommission !== null && item.ReceivedCommission !== undefined) ? item.ReceivedCommission : "";
+  $("#af-teamreceived").value = (item && item.TeamReceivedCommission !== null && item.TeamReceivedCommission !== undefined) ? item.TeamReceivedCommission : "";
   $("#af-paiddate").value = dateInputVal(item && item.CommissionPaidDate);
   $("#af-commnotes").value = (item && item.CommissionNotes) || "";
   $("#af-notes").value = (item && item.Notes) || "";
   $("#af-delete").hidden = !item;
   toggleLoadingField(); // show Loading Discount only when the chosen insurer is Acenda
+  toggleTeamFeeField(!item); // show the team fee only for external (non-team) advisers
   openModal("app-modal");
 }
 function toggleLoadingField() {
   $("#af-loading-field").hidden = !isAcenda($("#af-insurer").value);
+}
+// Insurance-team status comes from the chosen adviser (not a per-app flag)
+function adviserIsTeam(adviserId) {
+  if (adviserId === undefined || adviserId === null || adviserId === "") return false;
+  const adv = state.advisers.find(x => String(x.id) === String(adviserId));
+  return !!(adv && adv.InsuranceTeam);
+}
+function appIsTeam(a) { return adviserIsTeam(a.AdviserLookupId); }
+// The insurance team's received revenue on an application: full received for team apps, the team fee for external apps
+function appTeamReceived(a) { return appIsTeam(a) ? (Number(a.ReceivedCommission) || 0) : (Number(a.TeamReceivedCommission) || 0); }
+// Show the "Received — Insurance Team" field only when the selected adviser is external (non-team)
+function toggleTeamFeeField(allowDefault) {
+  const external = !!$("#af-adviser").value && !adviserIsTeam($("#af-adviser").value);
+  $("#af-teamfee-field").hidden = !external;
+  if (external && allowDefault && !$("#af-id").value && !$("#af-teamreceived").value) {
+    const fee = externalAdviserFee();
+    if (fee !== null) $("#af-teamreceived").value = fee; // default the team fee from Settings (editable)
+  }
 }
 /* ---------- Comments thread modal (apps + claims) ---------- */
 let commentCtx = null;
@@ -2356,12 +2391,13 @@ function renderAdvisersTable() {
     "<tr>" +
       '<td class="td-title">' + esc(a.Title) + "</td>" +
       "<td>" + esc(a.Email || "") + "</td>" +
+      "<td>" + (a.InsuranceTeam ? '<span class="badge badge-teal">Insurance Team</span>' : '<span class="cmt-none">External</span>') + "</td>" +
       "<td>" + (isActive(a) ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-gray">Inactive</span>') + "</td>" +
       '<td class="td-actions">' +
         '<button class="icon-btn" data-action="edit" data-id="' + a.id + '" title="Edit">' + ICON_EDIT + "</button> " +
         '<button class="btn btn-ghost btn-sm" data-action="toggle" data-id="' + a.id + '">' + (isActive(a) ? "Deactivate" : "Activate") + "</button>" +
       "</td></tr>"
-  ).join("") : '<tr><td colspan="4" class="td-empty">No advisers found.</td></tr>';
+  ).join("") : '<tr><td colspan="5" class="td-empty">No advisers found.</td></tr>';
 }
 function renderInsurersTable() {
   const rows = sortByTitle(state.insurers);
@@ -2380,6 +2416,7 @@ function openAdviserModal(item) {
   $("#advf-id").value = item ? item.id : "";
   $("#advf-title").value = (item && item.Title) || "";
   $("#advf-email").value = (item && item.Email) || "";
+  $("#advf-team").checked = item ? !!item.InsuranceTeam : false;
   $("#advf-active").checked = item ? isActive(item) : true;
   openModal("adviser-modal");
 }
@@ -2582,6 +2619,15 @@ $("#menu-btn").addEventListener("click", () => {
   $("#backdrop").hidden = !open;
 });
 $("#backdrop").addEventListener("click", closeSidebar);
+// Fully hide / show the sidebar (desktop) — remembered between visits
+function setSidebarHidden(hidden) {
+  $("#app").classList.toggle("sidebar-hidden", hidden);
+  closeSidebar();
+  writeLS("insTracker.sidebarHidden", !!hidden);
+}
+$("#sidebar-toggle").addEventListener("click", () => setSidebarHidden(true));
+$("#sidebar-show").addEventListener("click", () => setSidebarHidden(false));
+if (readLS("insTracker.sidebarHidden")) $("#app").classList.add("sidebar-hidden");
 
 function showSkeletons() {
   if (currentPage === "dashboard") { $("#dash-app-cards").innerHTML = skeletonCards(6); $("#dash-claim-cards").innerHTML = skeletonCards(4); }
@@ -2703,8 +2749,10 @@ $("#comments-thread").addEventListener("click", e => {
   if (btn) deleteComment(btn.getAttribute("data-cmt-del"));
 });
 $("#af-insurer").addEventListener("change", toggleLoadingField);
+$("#af-adviser").addEventListener("change", () => toggleTeamFeeField(true));
 $("#app-form").addEventListener("submit", async e => {
   e.preventDefault();
+  const external = !!$("#af-adviser").value && !adviserIsTeam($("#af-adviser").value);
   const fields = {
     Title: $("#af-title").value.trim(),
     ClientType: $("#af-clienttype").value || null,
@@ -2713,14 +2761,13 @@ $("#app-form").addEventListener("submit", async e => {
     CompletionDate: $("#af-compdate").value || null,
     InsurerLookupId: $("#af-insurer").value ? Number($("#af-insurer").value) : null,
     AdviserLookupId: $("#af-adviser").value ? Number($("#af-adviser").value) : null,
-    InsuranceTeam: $("#af-team").checked,
     ImplementationManagerLookupId: $("#af-implmgr").value ? Number($("#af-implmgr").value) : null,
     LoadingDiscountLookupId: (isAcenda($("#af-insurer").value) && $("#af-loading").value) ? Number($("#af-loading").value) : null,
     Location: $("#af-location").value || null,
     Status: $("#af-status").value || null,
-    TotalCommission: numOrNull($("#af-fullcomm").value),
     ExpectedCommission: numOrNull($("#af-expected").value),
     ReceivedCommission: numOrNull($("#af-received").value),
+    TeamReceivedCommission: external ? numOrNull($("#af-teamreceived").value) : null,
     CommissionPaidDate: $("#af-paiddate").value || null,
     CommissionNotes: $("#af-commnotes").value,
     Notes: $("#af-notes").value
@@ -2826,6 +2873,7 @@ $("#adviser-form").addEventListener("submit", async e => {
   const fields = {
     Title: $("#advf-title").value.trim(),
     Email: $("#advf-email").value.trim(),
+    InsuranceTeam: $("#advf-team").checked,
     Active: $("#advf-active").checked
   };
   await saveRecord("advisers", $("#advf-id").value, fields, "adviser-modal", e.target);
