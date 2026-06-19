@@ -273,6 +273,9 @@ th.td-actions{text-align:right}
 .cmt-tag{display:inline-block;margin-left:6px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--navy-900);color:#fff;border-radius:var(--r-pill);padding:1px 7px;vertical-align:middle}
 .cmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--muted);margin-bottom:4px}
 .cmt-author{font-weight:600;color:var(--navy-800)}
+.cmt-meta-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.cmt-del{border:0;background:none;color:var(--muted);cursor:pointer;padding:2px;border-radius:4px;display:inline-flex;line-height:0;opacity:.55;transition:color .15s,opacity .15s}
+.cmt-del:hover{color:var(--red);opacity:1}
 .cmt-text{font-size:13.5px;white-space:pre-wrap;word-break:break-word}
 .thread-compose{display:flex;flex-direction:column;gap:8px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
 .modal-footer.split{justify-content:space-between}
@@ -474,6 +477,10 @@ body{
           <h3>Applications by Age Group</h3>
           <div class="chart-box"><canvas id="chartAgeGroup"></canvas><div class="no-data" hidden>No data yet</div></div>
         </div>
+        <div class="chart-card wide">
+          <h3>Average Days to Complete by Insurer</h3>
+          <div class="chart-box"><canvas id="chartAvgDaysInsurer"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
       </div>
 
       <div class="dash-section">
@@ -591,7 +598,7 @@ body{
           <div class="card-header">
             <div>
               <h2>App Settings</h2>
-              <p class="card-note">Values stored in the SharePoint Settings list. ExternalAdviserFee is the default Expected Commission for external (non&#8209;team) applications.</p>
+              <p class="card-note">Values stored in the SharePoint Settings list. ExternalAdviserFee is a reference fee for external (non&#8209;team) applications — it is no longer auto&#8209;filled on new applications.</p>
             </div>
           </div>
           <div class="table-wrap">
@@ -710,11 +717,12 @@ body{
           <label class="field"><span>Adviser</span><select id="af-adviser" class="input"></select></label>
           <label class="field checkbox-field span-2"><input type="checkbox" id="af-team"><span>Insurance Team Application</span></label>
           <label class="field span-2"><span>Implementation Manager</span><select id="af-implmgr" class="input"></select></label>
+          <label class="field span-2"><span>Location <span style="color:var(--muted);font-weight:600">· who it's with</span></span><select id="af-location" class="input"></select></label>
           <label class="field span-2" id="af-loading-field" hidden><span>Loading Discount <span style="color:var(--accent);font-weight:600">· Acenda</span></span><select id="af-loading" class="input"></select></label>
-          <label class="field"><span>Expected Commission (AUD)</span><input type="number" step="any" id="af-expected" class="input"></label>
+          <label class="field"><span>Full Commission (AUD) <span style="color:var(--muted);font-weight:600">· whole of business</span></span><input type="number" step="any" id="af-fullcomm" class="input"></label>
+          <label class="field"><span>Expected Commission (AUD) <span style="color:var(--muted);font-weight:600">· fee we receive</span></span><input type="number" step="any" id="af-expected" class="input"></label>
           <label class="field"><span>Received Commission (AUD)</span><input type="number" step="any" id="af-received" class="input"></label>
           <label class="field"><span>Commission Paid Date</span><input type="date" id="af-paiddate" class="input"></label>
-          <div class="field"></div>
           <label class="field span-2"><span>Commission Notes</span><textarea id="af-commnotes" class="input" rows="2"></textarea></label>
           <label class="field span-2"><span>Notes</span><textarea id="af-notes" class="input" rows="3"></textarea></label>
         </div>
@@ -899,6 +907,8 @@ const SCOPES = ["https://graph.microsoft.com/Sites.ReadWrite.All", "User.Read"];
 const GRAPH_LISTS_BASE = "https://graph.microsoft.com/v1.0/sites/coastaladvicegroup.sharepoint.com:/sites/PowerApp:/lists/";
 const LISTS = { advisers: "Advisers", insurers: "Insurers", settings: "Settings", applications: "Applications", claims: "Claims", comments: "Comments", implmanagers: "ImplementationManagers", loadingdiscounts: "LoadingDiscounts" };
 const APP_STATUSES = ["Submitted", "In Progress", "On Hold", "Completed", "Paid", "Did Not Complete", "Declined"];
+// Where an application is currently sitting (active stage only)
+const APP_LOCATIONS = ["Client", "Adviser", "Implementation Manager", "Insurer", "Medicals"];
 // Application lifecycle stages, derived from Status
 const APP_STAGES = [
   { key: "active", label: "Active", statuses: ["Submitted", "In Progress", "On Hold"], comm: "expected" },
@@ -929,7 +939,7 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 const STATUS_BADGE = { "Submitted": "badge-blue", "In Progress": "badge-amber", "On Hold": "badge-slate", "Completed": "badge-teal", "Paid": "badge-green", "Did Not Complete": "badge-gray", "Declined": "badge-red" };
 const CLAIM_BADGE = { "Lodged": "badge-blue", "Assessing": "badge-amber", "Approved": "badge-teal", "Paid": "badge-green", "Withdrawn": "badge-gray", "Declined": "badge-red", "Closed": "badge-slate" };
-const STATUS_COLORS = { "Submitted": "#3674a8", "In Progress": "#b9762a", "On Hold": "#6b7c8c", "Completed": "#1d7f78", "Paid": "#2f8662", "Did Not Complete": "#94a3b8", "Declined": "#c0392b" };
+const STATUS_COLORS = { "Submitted": "#3674a8", "In Progress": "#b9762a", "On Hold": "#6b7c8c", "Completed": "#16b3c4", "Paid": "#2f8662", "Did Not Complete": "#94a3b8", "Declined": "#c0392b" };
 const CLAIM_STATUS_COLORS = { "Lodged": "#3674a8", "Assessing": "#b9762a", "Approved": "#1d7f78", "Paid": "#2f8662", "Withdrawn": "#6b7c8c", "Declined": "#c0392b", "Closed": "#44586a" };
 const CLAIM_TYPE_COLORS = { "Life": "#0f2433", "TPD": "#3674a8", "Trauma": "#eba380", "Income Protection": "#1d7f78", "Business": "#b9762a", "Other": "#6b7c8c" };
 const PIE_COLORS = ["#0f2433", "#3674a8", "#eba380", "#7fb8d4", "#2f8662", "#b9762a", "#6b7c8c", "#c0392b", "#1d7f78", "#44586a"];
@@ -1088,7 +1098,7 @@ function countByLookup(arr, field, cacheKey) {
 }
 
 /* ---------- Sorting ---------- */
-const NUM_KEYS = new Set(["ExpectedCommission", "ReceivedCommission", "BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "InsuranceTeam", "DaysTaken", "ClaimManagementFee", "ClientAge"]);
+const NUM_KEYS = new Set(["TotalCommission", "ExpectedCommission", "ReceivedCommission", "BenefitAmount", "MonthlyBenefitAmount", "TotalPaid", "InsuranceTeam", "DaysTaken", "ClaimManagementFee", "ClientAge"]);
 const DATE_KEYS = new Set(["SubmissionDate", "CompletionDate", "CommissionPaidDate", "LodgementDate", "DecisionDate", "ClaimFeePaidDate"]);
 function sortKind(key) { return NUM_KEYS.has(key) ? "num" : DATE_KEYS.has(key) ? "date" : "text"; }
 function sortVal(row, key) {
@@ -1686,18 +1696,24 @@ function renderDashboard() {
   const pipeline = sumBy(active, a => a.ExpectedCommission);
   const aged = subApps.filter(a => ageGroup(a.ClientAge) !== null);
   const avgAge = aged.length ? Math.round(aged.reduce((t, a) => t + Number(a.ClientAge), 0) / aged.length) : 0;
-  const expected = sumBy(completedApps, a => a.ExpectedCommission);
+  const totalComm = sumBy(subApps, a => a.TotalCommission);          // full commission written across the business
+  const expected = sumBy(completedApps, a => a.ExpectedCommission);  // our fee, recognised at completion
   const received = sumBy(paidApps, a => a.ReceivedCommission);
+  // Average days to complete (submission → completion) for apps completed in range
+  const completedWithDays = completedApps.filter(a => a.SubmissionDate && a.CompletionDate);
+  const avgDays = completedWithDays.length ? Math.round(completedWithDays.reduce((t, a) => t + daysBetween(a.SubmissionDate, a.CompletionDate), 0) / completedWithDays.length) : 0;
   const claimFees = sumBy(claims.filter(c => inRange(c.ClaimFeePaidDate, bounds)), c => c.ClaimManagementFee);
   const benefitsPaid = sumBy(rangeClaims, c => c.TotalPaid);
   const openClaims = rangeClaims.filter(c => claimStageOf(c) === "inprogress").length;
   const appCards = [
     { label: "Total Applications", value: subApps.length },
     { label: "Active Applications", value: active.length },
+    { label: "Total Commission (Business)", value: totalComm, money: true },
     { label: "Commission Pipeline", value: pipeline, money: true },
     { label: "Expected (Completed)", value: expected, money: true },
     { label: "Received Commission", value: received, money: true },
     { label: "Commission Outstanding", value: expected - received, money: true },
+    { label: "Avg Days to Complete", value: avgDays },
     { label: "Average Client Age", value: avgAge }
   ];
   const claimCards = [
@@ -1727,6 +1743,14 @@ function renderDashboard() {
   drawDoughnut("chartStatus", countByOrdered(subApps, a => a.Status, APP_STATUSES), STATUS_COLORS,
     { text: String(subApps.length), sub: "Applications" }, k => drillApplications({ status: k }));
   drawBar("chartAgeGroup", { labels: AGE_GROUPS.slice(), data: AGE_GROUPS.map(g => subApps.filter(a => ageGroup(a.ClientAge) === g).length), keys: AGE_GROUPS.slice() }, C_STEEL, false);
+  // Average days to complete, grouped by insurer
+  const daysByIns = {};
+  completedWithDays.forEach(a => {
+    const name = lookupTitle(a, "Insurer", "insurers") || "Unassigned";
+    (daysByIns[name] = daysByIns[name] || []).push(daysBetween(a.SubmissionDate, a.CompletionDate));
+  });
+  const insLabels = Object.keys(daysByIns).sort();
+  drawBar("chartAvgDaysInsurer", { labels: insLabels, data: insLabels.map(l => Math.round(daysByIns[l].reduce((t, d) => t + d, 0) / daysByIns[l].length)), keys: insLabels }, C_PEACH, false);
   drawDoughnut("chartClaims", countByOrdered(rangeClaims, c => c.ClaimStatus, CLAIM_STATUSES), CLAIM_STATUS_COLORS,
     { text: String(rangeClaims.length), sub: "Claims" }, k => drillClaims({ status: k }));
 
@@ -1781,18 +1805,23 @@ function claimBadge(s) {
 }
 // Column descriptors per lifecycle stage (Active/Completed show expected; Paid shows received + date; DNC shows neither)
 function appColumns(stage) {
+  const completedStage = (stage === "completed" || stage === "paid");
   const cols = [
     { key: "Title", label: "Title", sortable: true, render: a => '<td class="td-title">' + esc(a.Title) + "</td>" },
     { key: "ClientType", label: "Client Type", sortable: true, render: a => "<td>" + esc(a.ClientType || "") + "</td>" },
-    { key: "ClientAge", label: "Age", sortable: true, num: true, render: a => '<td class="td-num">' + (a.ClientAge != null && a.ClientAge !== "" ? esc(a.ClientAge) : '<span class="cmt-none">—</span>') + "</td>" },
-    { key: "SubmissionDate", label: "Submitted", sortable: true, render: a => "<td>" + fmtDate(a.SubmissionDate) + "</td>" }
+    { key: "ClientAge", label: "Age", sortable: true, num: true, render: a => '<td class="td-num">' + (a.ClientAge != null && a.ClientAge !== "" ? esc(a.ClientAge) : '<span class="cmt-none">—</span>') + "</td>" }
   ];
+  // Completed / Completed & Paid tabs show the completion date; Active / DNC show the submission date
+  if (completedStage) cols.push({ key: "CompletionDate", label: "Completed", sortable: true, render: a => "<td>" + fmtDate(a.CompletionDate) + "</td>" });
+  else cols.push({ key: "SubmissionDate", label: "Submitted", sortable: true, render: a => "<td>" + fmtDate(a.SubmissionDate) + "</td>" });
   if (stage !== "dnc") cols.push({ key: "DaysTaken", label: "Days", sortable: true, num: true, render: a => daysCell(a) });
   cols.push({ key: "Insurer", label: "Insurer", sortable: true, render: a => "<td>" + esc(lookupTitle(a, "Insurer", "insurers")) + "</td>" });
+  cols.push({ key: "LoadingDiscount", label: "Loading", sortable: true, render: a => { const v = lookupTitle(a, "LoadingDiscount", "loadingdiscounts"); return "<td>" + (v ? '<span class="badge badge-teal">' + esc(v) + "</span>" : '<span class="cmt-none">—</span>') + "</td>"; } });
   cols.push({ key: "Adviser", label: "Adviser", sortable: true, render: a => "<td>" + esc(lookupTitle(a, "Adviser", "advisers")) + "</td>" });
   cols.push({ key: "ImplementationManager", label: "Impl. Manager", sortable: true, render: a => { const v = lookupTitle(a, "ImplementationManager", "implmanagers"); return "<td>" + (v ? esc(v) : '<span class="cmt-none">—</span>') + "</td>"; } });
-  cols.push({ key: "LoadingDiscount", label: "Loading", sortable: true, render: a => { const v = lookupTitle(a, "LoadingDiscount", "loadingdiscounts"); return "<td>" + (v ? '<span class="badge badge-teal">' + esc(v) + "</span>" : '<span class="cmt-none">—</span>') + "</td>"; } });
+  if (stage === "active") cols.push({ key: "Location", label: "Location", sortable: true, render: a => "<td>" + (a.Location ? '<span class="badge badge-slate">' + esc(a.Location) + "</span>" : '<span class="cmt-none">—</span>') + "</td>" });
   cols.push({ key: "Status", label: "Status", sortable: true, render: a => "<td>" + statusSelectHTML("applications", a.id, a.Status, APP_STATUSES, STATUS_BADGE) + "</td>" });
+  if (stage !== "dnc") cols.push({ key: "TotalCommission", label: "Full Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.TotalCommission) + "</td>" });
   if (stage === "paid") {
     cols.push({ key: "ReceivedCommission", label: "Received Comm.", sortable: true, num: true, render: a => '<td class="td-num">' + fmtAUD(a.ReceivedCommission) + "</td>" });
     cols.push({ key: "CommissionPaidDate", label: "Comm. Paid", sortable: true, render: a => "<td>" + fmtDate(a.CommissionPaidDate) + "</td>" });
@@ -1809,9 +1838,8 @@ function commentCell(entity, row) {
     (c._created ? '<span class="cmt-sub">' + esc(fmtDateTime(c._created)) + "</span>" : "") + "</td>";
 }
 function actionsCell(entity, id) {
-  const n = commentCount(entity, id);
   return '<td class="td-actions">' +
-    '<button class="icon-btn cmt-btn" data-action="comments" data-id="' + id + '" title="Comments">' + ICON_COMMENT + (n ? '<span class="cmt-badge">' + n + "</span>" : "") + "</button>" +
+    '<button class="icon-btn cmt-btn" data-action="comments" data-id="' + id + '" title="Comments">' + ICON_COMMENT + "</button>" +
     '<button class="icon-btn" data-action="edit" data-id="' + id + '" title="Edit">' + ICON_EDIT + "</button>" +
     "</td>";
 }
@@ -1829,7 +1857,7 @@ function baseFilteredApplications() {
     if (month && ymd(a.SubmissionDate).slice(0, 7) !== month) return false;
     if (!inRange(a.SubmissionDate, bounds)) return false;
     if (q) {
-      const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), lookupTitle(a, "ImplementationManager", "implmanagers"), lookupTitle(a, "LoadingDiscount", "loadingdiscounts"), a.Status, a.ClientType].join(" ").toLowerCase();
+      const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), lookupTitle(a, "ImplementationManager", "implmanagers"), lookupTitle(a, "LoadingDiscount", "loadingdiscounts"), a.Location, a.Status, a.ClientType].join(" ").toLowerCase();
       if (hay.indexOf(q) < 0) return false;
     }
     return true;
@@ -1855,7 +1883,8 @@ function renderApplicationsTable() {
   renderStageTabs();
   const cols = appColumns(state.appStage);
   const cur = state.sort.applications;
-  const eff = cols.some(c => c.sortable && c.key === cur.key) ? cur : { key: "SubmissionDate", dir: "desc" };
+  const dateKey = (state.appStage === "completed" || state.appStage === "paid") ? "CompletionDate" : "SubmissionDate";
+  const eff = cols.some(c => c.sortable && c.key === cur.key) ? cur : { key: dateKey, dir: "desc" };
   $("#applications-thead").innerHTML = "<tr>" + cols.map(c =>
     "<th" + (c.num ? ' class="td-num"' : "") + (c.sortable ? ' data-sort="' + c.key + '"' : "") + ">" + esc(c.label) + (c.sortable ? '<span class="sort-ind"></span>' : "") + "</th>"
   ).join("") + '<th class="td-actions">Actions</th></tr>';
@@ -1876,9 +1905,10 @@ function csvValForApp(a, key) {
   if (key === "ImplementationManager") return lookupTitle(a, "ImplementationManager", "implmanagers");
   if (key === "LoadingDiscount") return lookupTitle(a, "LoadingDiscount", "loadingdiscounts");
   if (key === "SubmissionDate") return fmtDate(a.SubmissionDate);
+  if (key === "CompletionDate") return fmtDate(a.CompletionDate);
   if (key === "CommissionPaidDate") return fmtDate(a.CommissionPaidDate);
   if (key === "DaysTaken") { const d = daysTaken(a); return d === null ? "" : d; }
-  if (key === "ExpectedCommission" || key === "ReceivedCommission") return a[key] != null && a[key] !== "" ? Number(a[key]).toFixed(2) : "";
+  if (key === "TotalCommission" || key === "ExpectedCommission" || key === "ReceivedCommission") return a[key] != null && a[key] !== "" ? Number(a[key]).toFixed(2) : "";
   return a[key] == null ? "" : a[key];
 }
 function exportApplicationsCSV() {
@@ -1900,14 +1930,16 @@ function openAppModal(item) {
   $("#af-title").value = (item && item.Title) || "";
   fillStaticSelect($("#af-clienttype"), CLIENT_TYPES, item ? item.ClientType : "", "Select…");
   $("#af-age").value = (item && item.ClientAge !== null && item.ClientAge !== undefined) ? item.ClientAge : "";
-  fillStaticSelect($("#af-status"), APP_STATUSES, item ? item.Status : "In Progress", "Select…");
+  fillStaticSelect($("#af-status"), APP_STATUSES, item ? item.Status : "Submitted", "Select…");
   $("#af-subdate").value = dateInputVal(item && item.SubmissionDate);
   $("#af-compdate").value = dateInputVal(item && item.CompletionDate);
   fillLookupSelect($("#af-insurer"), state.insurers, item ? item.InsurerLookupId : "", "Select insurer…");
   fillLookupSelect($("#af-adviser"), state.advisers, item ? item.AdviserLookupId : "", "Select adviser…");
   $("#af-team").checked = item ? !!item.InsuranceTeam : false;
   fillLookupSelect($("#af-implmgr"), state.implmanagers, item ? item.ImplementationManagerLookupId : "", "Select…");
+  fillStaticSelect($("#af-location"), APP_LOCATIONS, item ? item.Location : "", "Select…");
   fillLookupSelect($("#af-loading"), state.loadingdiscounts, item ? item.LoadingDiscountLookupId : "", "None");
+  $("#af-fullcomm").value = (item && item.TotalCommission !== null && item.TotalCommission !== undefined) ? item.TotalCommission : "";
   $("#af-expected").value = (item && item.ExpectedCommission !== null && item.ExpectedCommission !== undefined) ? item.ExpectedCommission : "";
   $("#af-received").value = (item && item.ReceivedCommission !== null && item.ReceivedCommission !== undefined) ? item.ReceivedCommission : "";
   $("#af-paiddate").value = dateInputVal(item && item.CommissionPaidDate);
@@ -1915,11 +1947,6 @@ function openAppModal(item) {
   $("#af-notes").value = (item && item.Notes) || "";
   $("#af-delete").hidden = !item;
   toggleLoadingField(); // show Loading Discount only when the chosen insurer is Acenda
-  // New external (non-team) application: default Expected Commission from Settings, still editable.
-  if (!item && !$("#af-team").checked) {
-    const fee = externalAdviserFee();
-    if (fee !== null) $("#af-expected").value = fee;
-  }
   openModal("app-modal");
 }
 function toggleLoadingField() {
@@ -1943,10 +1970,25 @@ function renderThread() {
   if (!list.length) { el.innerHTML = '<div class="thread-empty">No comments yet. Add the first one below.</div>'; return; }
   el.innerHTML = list.map(c => {
     const sys = /^Status:/.test(c.Comment || "");
-    return '<div class="cmt' + (sys ? " cmt-sys" : "") + '"><div class="cmt-meta"><span class="cmt-author">' + esc(c._author || "Unknown") + (sys ? '<span class="cmt-tag">status</span>' : "") + "</span><span>" + esc(fmtDateTime(c._created)) + "</span></div>" +
+    return '<div class="cmt' + (sys ? " cmt-sys" : "") + '"><div class="cmt-meta"><span class="cmt-author">' + esc(c._author || "Unknown") + (sys ? '<span class="cmt-tag">status</span>' : "") + "</span>" +
+      '<span class="cmt-meta-right"><span>' + esc(fmtDateTime(c._created)) + "</span>" +
+      '<button type="button" class="cmt-del" data-cmt-del="' + esc(c.id) + '" title="Delete comment" aria-label="Delete comment">' + ICON_TRASH + "</button></span></div>" +
       '<div class="cmt-text">' + esc(c.Comment || "") + "</div></div>";
   }).join("");
   el.scrollTop = 0;
+}
+async function deleteComment(id) {
+  if (!(await confirmDialog("Delete this comment? This cannot be undone."))) return;
+  try {
+    await deleteItem(LISTS.comments, id);
+    await loadList("comments");
+    renderThread();
+    renderActivePage();
+    showToast("Comment deleted.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
 }
 async function addComment() {
   if (!commentCtx) return;
@@ -2632,11 +2674,9 @@ $("#af-delete").addEventListener("click", async () => {
 });
 $("#cmt-add").addEventListener("click", addComment);
 $("#cmt-input").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addComment(); } });
-$("#af-team").addEventListener("change", () => {
-  if (!$("#af-team").checked) {
-    const fee = externalAdviserFee();
-    if (fee !== null) $("#af-expected").value = fee;
-  }
+$("#comments-thread").addEventListener("click", e => {
+  const btn = e.target.closest("[data-cmt-del]");
+  if (btn) deleteComment(btn.getAttribute("data-cmt-del"));
 });
 $("#af-insurer").addEventListener("change", toggleLoadingField);
 $("#app-form").addEventListener("submit", async e => {
@@ -2652,7 +2692,9 @@ $("#app-form").addEventListener("submit", async e => {
     InsuranceTeam: $("#af-team").checked,
     ImplementationManagerLookupId: $("#af-implmgr").value ? Number($("#af-implmgr").value) : null,
     LoadingDiscountLookupId: (isAcenda($("#af-insurer").value) && $("#af-loading").value) ? Number($("#af-loading").value) : null,
+    Location: $("#af-location").value || null,
     Status: $("#af-status").value || null,
+    TotalCommission: numOrNull($("#af-fullcomm").value),
     ExpectedCommission: numOrNull($("#af-expected").value),
     ReceivedCommission: numOrNull($("#af-received").value),
     CommissionPaidDate: $("#af-paiddate").value || null,
