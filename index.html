@@ -181,6 +181,7 @@ thead th.sorted-desc .sort-ind::after{content:"\25BC";opacity:1}
 thead th.sorted-asc .sort-ind,thead th.sorted-desc .sort-ind{opacity:1;color:var(--peach)}
 td{padding:10px 12px;border-top:1px solid var(--border);vertical-align:middle}
 tbody tr{transition:background var(--t-fast)}
+tbody tr:nth-child(even){background:rgba(15,36,51,.028)}
 tbody tr:hover{background:rgba(222,245,255,.4)}
 .td-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 th.td-num{text-align:right}
@@ -362,6 +363,51 @@ body{
   @keyframes cardIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
 }
 
+/* ---------- Detail drawer ---------- */
+#drawer-backdrop{position:fixed;inset:0;background:rgba(15,36,51,.32);z-index:54;opacity:0;transition:opacity .22s ease}
+#drawer-backdrop.open{opacity:1}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,calc(100vw - 24px));z-index:55;display:flex;flex-direction:column;background:var(--card);border-left:1px solid var(--border);box-shadow:-18px 0 48px rgba(15,36,51,.22);transform:translateX(103%);transition:transform .24s cubic-bezier(.4,0,.2,1)}
+#drawer.open{transform:none}
+@media(prefers-reduced-motion:reduce){#drawer{transition:none}#drawer-backdrop{transition:none}}
+.drawer-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--border);flex:none}
+.drawer-head-text{min-width:0}
+.drawer-head h2{font-size:17px;color:var(--navy-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drawer-sub{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.drawer-head-actions{display:flex;gap:6px;align-items:center;flex:none}
+.drawer-body{padding:18px 20px;overflow-y:auto;flex:1}
+.drawer-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.drawer-field{min-width:0}
+.drawer-field dt{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:var(--track-label);margin-bottom:2px}
+.drawer-field dd{font-size:13.5px;color:var(--text);word-break:break-word}
+.drawer-field.span-2{grid-column:1/-1}
+.drawer-h{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:var(--track-label);font-weight:600;margin:20px 0 10px;padding-top:14px;border-top:1px solid var(--border)}
+.drawer-thread{max-height:none}
+.drawer-timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:12px;position:relative;padding:0 0 14px 2px}
+.tl-item::before{content:"";position:absolute;left:7px;top:14px;bottom:-2px;width:2px;background:var(--border)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:12px;height:12px;border-radius:50%;flex:none;margin-top:3px;box-shadow:0 0 0 3px var(--card);z-index:1}
+.tl-info{min-width:0;flex:1}
+.tl-status{font-size:13px;font-weight:600;color:var(--navy-800)}
+.tl-dates{font-size:11.5px;color:var(--muted);margin-top:1px}
+.tl-days{font-size:12px;font-weight:700;color:var(--navy-900);white-space:nowrap;font-variant-numeric:tabular-nums;margin-top:2px}
+.tl-current .tl-status::after{content:"current";margin-left:7px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--peach);color:var(--navy-900);border-radius:var(--r-pill);padding:1px 7px;vertical-align:middle}
+.timeline-empty{color:var(--muted);font-size:12.5px;padding:6px 0 2px}
+/* Clickable rows */
+tbody tr[data-id]{cursor:pointer}
+/* ---------- Stale flags ---------- */
+.days-amber{color:#b9762a;font-weight:700}
+.days-red{color:var(--red);font-weight:700}
+.stale-dot{margin-left:6px;cursor:help;font-size:12px;color:#b9762a}
+/* ---------- Metric card icons ---------- */
+.metric-ico{position:absolute;top:13px;right:14px;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.ico-steel{background:rgba(54,116,168,.12);color:#3674a8}
+.ico-peach{background:rgba(235,163,128,.18);color:#c97a4e}
+.ico-green{background:rgba(47,134,98,.13);color:#2f8662}
+.ico-navy{background:rgba(15,36,51,.09);color:#16344a}
+.ico-amber{background:rgba(185,118,42,.13);color:#b9762a}
+.metric-card{padding-right:56px}
+
 /* ---------- Responsive ---------- */
 @media(max-width:900px){
   #topbar{display:flex;position:fixed;top:0;left:0;right:0;height:56px;background:var(--navy-900);color:#fff;align-items:center;gap:10px;padding:0 14px;z-index:45}
@@ -377,6 +423,79 @@ body{
   .form-grid{grid-template-columns:1fr}
   .modal-overlay{padding:10px}
 }
+
+/* ============ Dark mode ============ */
+/* Ink-role navy tokens flip to light; true-navy surfaces (sidebar, thead, buttons) are re-pinned below. */
+:root[data-theme="dark"]{
+  --bg:#0c161f; --card:#12212e; --border:#24394b;
+  --text:#d9e6f0; --muted:#8fa9bb;
+  --navy-950:#eaf3fa; --navy-900:#e2eef7; --navy-800:#cfe2f0; --navy-700:#b7d2e5;
+  --accent:#6ba7d8; --red:#e06553;
+  --glass-bg:rgba(18,33,46,.72); --glass-brd:rgba(255,255,255,.09);
+  --shadow-glass:0 10px 34px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.30);
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+  --shadow-md:0 6px 20px rgba(0,0,0,.4);
+  --focus:0 0 0 3px rgba(107,167,216,.4);
+}
+:root[data-theme="dark"] body{
+  background:
+    radial-gradient(1100px 560px at 100% -8%, rgba(54,116,168,.14), transparent 60%),
+    radial-gradient(820px 520px at -8% 112%, rgba(235,163,128,.07), transparent 55%),
+    var(--bg);
+  background-attachment:fixed;
+}
+:root[data-theme="dark"] ::selection{background:#2a4a63;color:#eaf3fa}
+:root[data-theme="dark"] *{scrollbar-color:#31485c transparent}
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb{background:#31485c;background-clip:content-box}
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover{background:#42607a;background-clip:content-box}
+/* Surfaces that must STAY navy (they sit behind white text) */
+:root[data-theme="dark"] thead th{background:#0f2433;color:#dcebf5}
+:root[data-theme="dark"] thead th[data-sort]:hover{background:#16344a}
+:root[data-theme="dark"] .dash-section-icon{background:#1a405b}
+:root[data-theme="dark"] .cmt-tag{background:#35597a}
+:root[data-theme="dark"] .checkbox-field input{accent-color:#6ba7d8}
+/* Buttons */
+:root[data-theme="dark"] .btn-secondary,:root[data-theme="dark"] .btn-ghost{background:#182a3a;color:#cfe2f0;border-color:#2b4258}
+:root[data-theme="dark"] .btn-secondary:hover,:root[data-theme="dark"] .btn-ghost:hover{background:#1e3447}
+:root[data-theme="dark"] .icon-btn:hover{background:#1c3245;color:#cfe2f0}
+:root[data-theme="dark"] .icon-btn.danger:hover{background:#3d2225;color:#e06553}
+/* Inputs */
+:root[data-theme="dark"] .input,:root[data-theme="dark"] .dash-range select,:root[data-theme="dark"] .dash-range input[type=date]{background:#0f1d29;border-color:#2b4258;color:var(--text)}
+:root[data-theme="dark"] .input::placeholder{color:#5f788c}
+/* Tables */
+:root[data-theme="dark"] tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
+:root[data-theme="dark"] tbody tr:hover{background:rgba(127,184,212,.08)}
+/* Modals, drawer, comments */
+:root[data-theme="dark"] .modal{background:rgba(18,33,46,.94)}
+:root[data-theme="dark"] #drawer{box-shadow:-18px 0 48px rgba(0,0,0,.55)}
+:root[data-theme="dark"] .cmt{background:#17293a;border-color:#24394b}
+:root[data-theme="dark"] .cmt-sys{background:#122230}
+/* Badges + status pills — translucent tints on dark */
+:root[data-theme="dark"] .badge-green,:root[data-theme="dark"] .ss-green{background:rgba(47,134,98,.22);color:#66d2a3}
+:root[data-theme="dark"] .badge-blue,:root[data-theme="dark"] .ss-blue{background:rgba(54,116,168,.24);color:#8cc0e8}
+:root[data-theme="dark"] .badge-amber,:root[data-theme="dark"] .ss-amber{background:rgba(185,118,42,.22);color:#e6b269}
+:root[data-theme="dark"] .badge-red,:root[data-theme="dark"] .ss-red{background:rgba(192,57,43,.24);color:#ef8b7c}
+:root[data-theme="dark"] .badge-teal,:root[data-theme="dark"] .ss-teal{background:rgba(29,127,120,.24);color:#5fc9c1}
+:root[data-theme="dark"] .badge-gray,:root[data-theme="dark"] .ss-gray{background:rgba(107,124,140,.22);color:#a8bac9}
+:root[data-theme="dark"] .badge-slate,:root[data-theme="dark"] .ss-slate{background:rgba(68,88,106,.32);color:#a9c0d2}
+/* Stage tabs, skeletons, import bits */
+:root[data-theme="dark"] .stage-tab:hover{background:#182a3a}
+:root[data-theme="dark"] .skeleton{background:#1a2c3c}
+:root[data-theme="dark"] .skeleton::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}
+:root[data-theme="dark"] .imp-pill{background:#182a3a;border-color:#2b4258}
+:root[data-theme="dark"] .imp-pill.warn{background:rgba(185,118,42,.18);border-color:#5c4522;color:#e6b269}
+:root[data-theme="dark"] .progress-track{background:#1a2c3c}
+/* Stale flags + card icons pop a little brighter */
+:root[data-theme="dark"] .days-amber{color:#e6b269}
+:root[data-theme="dark"] .stale-dot{color:#e6b269}
+:root[data-theme="dark"] .ico-steel{background:rgba(107,167,216,.16);color:#8cc0e8}
+:root[data-theme="dark"] .ico-peach{background:rgba(235,163,128,.16);color:#eba380}
+:root[data-theme="dark"] .ico-green{background:rgba(47,134,98,.2);color:#66d2a3}
+:root[data-theme="dark"] .ico-navy{background:rgba(127,184,212,.14);color:#a9c9dd}
+:root[data-theme="dark"] .ico-amber{background:rgba(185,118,42,.18);color:#e6b269}
+/* Theme toggle (sidebar is navy in both themes) */
+#theme-toggle{margin-top:11px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.22);color:var(--ink-on-navy);border-radius:var(--r-sm);padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:var(--track-label);font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background var(--t-fast),color var(--t-fast)}
+#theme-toggle:hover{background:rgba(255,255,255,.10);color:#fff}
 </style>
 </head>
 <body>
@@ -436,6 +555,7 @@ body{
     <div class="sidebar-footer">
       <div id="user-name"></div>
       <div id="user-email"></div>
+      <button id="theme-toggle" type="button" aria-label="Toggle dark mode"></button>
       <button id="signout-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign out
@@ -495,6 +615,14 @@ body{
         <div class="chart-card wide">
           <h3>Average Days to Complete by Insurer</h3>
           <div class="chart-box"><canvas id="chartAvgDaysInsurer"></canvas><div class="no-data" hidden>No data yet</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Average Days in Each Stage</h3>
+          <div class="chart-box"><canvas id="chartAvgStage"></canvas><div class="no-data" hidden>No stage history yet — builds as statuses change</div></div>
+        </div>
+        <div class="chart-card">
+          <h3>Days in Stage by Insurer</h3>
+          <div class="chart-box"><canvas id="chartStageInsurer"></canvas><div class="no-data" hidden>No stage history yet — builds as statuses change</div></div>
         </div>
       </div>
 
@@ -613,7 +741,7 @@ body{
           <div class="card-header">
             <div>
               <h2>App Settings</h2>
-              <p class="card-note">Values stored in the SharePoint Settings list. ExternalAdviserFee is a reference fee for external (non&#8209;team) applications — it is no longer auto&#8209;filled on new applications.</p>
+              <p class="card-note">Values stored in the SharePoint Settings list. ExternalAdviserFee is the default team fee on external (non&#8209;team) applications. Optional stale&#8209;flag tuning: <b>StaleAmberDays</b> (45), <b>StaleRedDays</b> (90), <b>InactiveDays</b> (14) — add them as rows to override the defaults.</p>
             </div>
           </div>
           <div class="table-wrap">
@@ -911,6 +1039,34 @@ body{
   </div>
 </div>
 
+<!-- ===== Detail drawer (applications + claims) ===== -->
+<div id="drawer-backdrop" hidden></div>
+<aside id="drawer" hidden aria-label="Record details">
+  <div class="drawer-head">
+    <div class="drawer-head-text">
+      <h2 id="drawer-title">Details</h2>
+      <div id="drawer-sub" class="drawer-sub"></div>
+    </div>
+    <div class="drawer-head-actions">
+      <button class="btn btn-sm" id="drawer-edit">Edit</button>
+      <button class="icon-btn" id="drawer-close" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+  </div>
+  <div class="drawer-body">
+    <div id="drawer-fields" class="drawer-fields"></div>
+    <h3 class="drawer-h">Status Timeline</h3>
+    <div id="drawer-timeline" class="drawer-timeline"></div>
+    <h3 class="drawer-h">Comments</h3>
+    <div id="drawer-thread" class="thread drawer-thread"></div>
+    <div class="thread-compose">
+      <textarea id="drawer-cmt-input" class="input" rows="2" placeholder="Add a comment…" maxlength="2000"></textarea>
+      <div style="display:flex;justify-content:flex-end">
+        <button type="button" class="btn btn-sm" id="drawer-cmt-add">Add Comment</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
 <div id="toasts"></div>
 
 <script>
@@ -959,9 +1115,23 @@ const STATUS_COLORS = { "Submitted": "#3674a8", "In Progress": "#b9762a", "On Ho
 const CLAIM_STATUS_COLORS = { "Lodged": "#3674a8", "Assessing": "#b9762a", "Approved": "#1d7f78", "Paid": "#2f8662", "Withdrawn": "#6b7c8c", "Declined": "#c0392b", "Closed": "#44586a" };
 const CLAIM_TYPE_COLORS = { "Life": "#0f2433", "TPD": "#3674a8", "Trauma": "#eba380", "Income Protection": "#1d7f78", "Business": "#b9762a", "Other": "#6b7c8c" };
 const PIE_COLORS = ["#0f2433", "#3674a8", "#eba380", "#7fb8d4", "#2f8662", "#b9762a", "#6b7c8c", "#c0392b", "#1d7f78", "#44586a"];
-// Brand chart palette
+// Brand chart palette — navy shades get lightened in dark mode (theme-aware lets, set by applyChartTheme)
 const C_NAVY = "#0f2433", C_STEEL = "#3674a8", C_NAVY_SOFT = "#16344a", C_PEACH = "#eba380", C_SKY = "#7fb8d4";
-const CHART_GRID = "#e6ebee", CHART_TICK = "#5d7183";
+let CHART_GRID = "#e6ebee", CHART_TICK = "#5d7183", CHART_LEGEND = "#475569", CHART_BORDER = "#fff",
+    CHART_NAVY = C_NAVY, CHART_NAVY_SOFT = C_NAVY_SOFT, CHART_INK = "#0f2433";
+function isDarkTheme() { return document.documentElement.getAttribute("data-theme") === "dark"; }
+function applyChartTheme() {
+  const dark = isDarkTheme();
+  CHART_GRID = dark ? "rgba(255,255,255,.08)" : "#e6ebee";
+  CHART_TICK = dark ? "#8fa9bb" : "#5d7183";
+  CHART_LEGEND = dark ? "#b7cad9" : "#475569";
+  CHART_BORDER = dark ? "#12212e" : "#fff";
+  CHART_NAVY = dark ? "#7fb8d4" : C_NAVY;           // navy series are invisible on a dark bg
+  CHART_NAVY_SOFT = dark ? "#4e81a6" : C_NAVY_SOFT;
+  CHART_INK = dark ? "#dce8f2" : "#0f2433";
+}
+// Swap near-black series colours for light ones in dark mode (e.g. CLAIM_TYPE_COLORS Life)
+function chartColor(c) { return (isDarkTheme() && (c === "#0f2433" || c === "#16344a")) ? "#7fb8d4" : c; }
 
 const state = { advisers: [], insurers: [], settings: [], applications: [], claims: [], comments: [], implmanagers: [], loadingdiscounts: [], account: null,
   appStage: "active", claimStage: "inprogress",
@@ -1090,10 +1260,10 @@ const centerTextPlugin = {
     const cx = (chartArea.left + chartArea.right) / 2, cy = (chartArea.top + chartArea.bottom) / 2;
     ctx.save();
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#0f2433";
+    ctx.fillStyle = CHART_INK;
     ctx.font = "600 22px " + CHART_FONT;
     ctx.fillText(cfg.text, cx, cy - 4);
-    if (cfg.sub) { ctx.fillStyle = "#5d7183"; ctx.font = "500 11px " + CHART_FONT; ctx.fillText(cfg.sub, cx, cy + 15); }
+    if (cfg.sub) { ctx.fillStyle = CHART_TICK; ctx.font = "500 11px " + CHART_FONT; ctx.fillText(cfg.sub, cx, cy + 15); }
     ctx.restore();
   }
 };
@@ -1445,11 +1615,36 @@ function daysTaken(a) {
   if (a.SubmissionDate) return daysBetween(a.SubmissionDate, todayStr());
   return null;
 }
+// Stale thresholds — tune via the Settings list (Title = name, Value = days) without a code change
+function settingNum(name, dflt) {
+  const s = state.settings.find(x => String(x.Title || "").toLowerCase() === name.toLowerCase());
+  if (!s) return dflt;
+  const n = Number(s.Value);
+  return isNaN(n) ? dflt : n;
+}
+function staleCfg() {
+  return { amber: settingNum("StaleAmberDays", 45), red: settingNum("StaleRedDays", 90), inactive: settingNum("InactiveDays", 14) };
+}
+// Last sign of life on an application: latest comment (incl. auto status logs), else last edit, else submission
+function lastActivity(a) {
+  const lc = latestComment("applications", a.id);
+  let d = lc && lc._created ? ymd(lc._created) : "";
+  const m = a._modified ? ymd(a._modified) : "";
+  if (m > d) d = m;
+  return d || ymd(a.SubmissionDate);
+}
 function daysCell(a) {
   const d = daysTaken(a);
   if (d === null) return '<td class="td-num"><span class="cmt-none">—</span></td>';
   const live = !a.CompletionDate;
-  return '<td class="td-num" title="' + (live ? "Days open so far" : "Submission to completion") + '">' + d + "</td>";
+  let cls = "", warn = "";
+  if (live) {
+    const cfg = staleCfg();
+    if (d >= cfg.red) cls = " days-red"; else if (d >= cfg.amber) cls = " days-amber";
+    const idle = lastActivity(a) ? daysBetween(lastActivity(a), todayStr()) : 0;
+    if (idle >= cfg.inactive) warn = '<span class="stale-dot" title="No activity for ' + idle + ' days">&#9888;</span>';
+  }
+  return '<td class="td-num' + cls + '" title="' + (live ? "Days open so far" : "Submission to completion") + '">' + d + warn + "</td>";
 }
 // Lookup display: prefer the value Graph returns in fields, else resolve via cached list by LookupId.
 function lookupTitle(row, name, cacheKey) {
@@ -1522,6 +1717,7 @@ function renderActivePage() {
   else if (currentPage === "applications") renderApplications();
   else if (currentPage === "claims") renderClaims();
   else if (currentPage === "settings") renderSettings();
+  if (typeof drawerCtx !== "undefined" && drawerCtx) renderDrawer(); // keep the open drawer in sync (compose box is never re-rendered)
 }
 function closeSidebar() {
   $("#sidebar").classList.remove("open");
@@ -1611,12 +1807,12 @@ function drawGroupedBar(id, labels, expData, recData) {
     type: "bar",
     data: { labels: labels, datasets: [
       { label: "Expected", data: expData, backgroundColor: C_PEACH, borderRadius: 4, maxBarThickness: 30 },
-      { label: "Received", data: recData, backgroundColor: C_NAVY, borderRadius: 4, maxBarThickness: 30 }
+      { label: "Received", data: recData, backgroundColor: CHART_NAVY, borderRadius: 4, maxBarThickness: 30 }
     ] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: "bottom", labels: { boxWidth: 12, padding: 14, color: "#475569" } },
+        legend: { position: "bottom", labels: { boxWidth: 12, padding: 14, color: CHART_LEGEND } },
         tooltip: { callbacks: { label: c => c.dataset.label + ": " + audFmt.format(c.parsed.y) } }
       },
       scales: {
@@ -1630,13 +1826,13 @@ function drawDoughnut(id, counts, colorMap, center, onSelect) {
   const colors = counts.labels.map((l, i) => (colorMap && colorMap[l]) || PIE_COLORS[i % PIE_COLORS.length]);
   drawChart(id, {
     type: "doughnut",
-    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: colors, borderWidth: 2, borderColor: "#fff" }] },
+    data: { labels: counts.labels, datasets: [{ data: counts.data, backgroundColor: colors, borderWidth: 2, borderColor: CHART_BORDER }] },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: "62%",
       onClick: clickHandler(counts, onSelect),
       onHover: onSelect ? (e, els) => { e.native.target.style.cursor = els.length ? "pointer" : "default"; } : undefined,
       plugins: {
-        legend: { position: "bottom", labels: { boxWidth: 12, padding: 13, color: "#475569" } },
+        legend: { position: "bottom", labels: { boxWidth: 12, padding: 13, color: CHART_LEGEND } },
         centerText: center || null
       }
     },
@@ -1690,10 +1886,90 @@ function ageGroup(v) {
   if (n < 18) return "0-17"; if (n < 30) return "18-29"; if (n < 40) return "30-39";
   if (n < 50) return "40-49"; if (n < 60) return "50-59"; return "60+";
 }
+/* ---------- Time-in-stage (built from the auto-logged "Status: X → Y" comments) ---------- */
+function statusLogsFor(entity, id) {
+  return commentsFor(entity, id)
+    .map(c => {
+      const m = /^Status:\s*(.*?)\s*→\s*(.*)$/.exec(c.Comment || "");
+      if (!m || !c._created) return null;
+      return { from: m[1].trim(), to: m[2].split("—")[0].trim(), at: c._created };
+    })
+    .filter(Boolean)
+    .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+// Segments of time spent in each status. Start = record creation; the current status runs to today.
+function stageSegments(entity, rec) {
+  const logs = statusLogsFor(entity, rec.id);
+  const statusKey = entity === "claims" ? "ClaimStatus" : "Status";
+  const segs = [];
+  let cursor = ymd(rec._created) || ymd(rec.SubmissionDate) || ymd(rec.LodgementDate);
+  if (!cursor) return segs;
+  let status = logs.length ? logs[0].from : (rec[statusKey] || "");
+  logs.forEach(l => {
+    const end = ymd(l.at);
+    if (status && status !== "New") segs.push({ status: status, from: cursor, to: end, days: daysBetween(cursor, end), current: false });
+    status = l.to; cursor = end;
+  });
+  if (status && status !== "New") segs.push({ status: status, from: cursor, to: todayStr(), days: daysBetween(cursor, todayStr()), current: true });
+  return segs;
+}
+// Average days spent in each stage, overall + per insurer, across the given applications
+function stageDurationStats(apps) {
+  const overall = {};                       // status -> {tot, n}
+  const byInsurer = {};                     // insurer -> status -> {tot, n}
+  apps.forEach(a => {
+    const insurer = lookupTitle(a, "Insurer", "insurers") || "Unassigned";
+    stageSegments("applications", a).forEach(s => {
+      if (APP_STATUSES.indexOf(s.status) < 0) return;
+      (overall[s.status] = overall[s.status] || { tot: 0, n: 0 });
+      overall[s.status].tot += s.days; overall[s.status].n++;
+      const ins = (byInsurer[insurer] = byInsurer[insurer] || {});
+      (ins[s.status] = ins[s.status] || { tot: 0, n: 0 });
+      ins[s.status].tot += s.days; ins[s.status].n++;
+    });
+  });
+  return { overall: overall, byInsurer: byInsurer };
+}
+function drawStackedBar(id, labels, datasets) {
+  const hasData = labels.length > 0 && datasets.some(d => d.data.some(v => Number(v) > 0));
+  drawChart(id, {
+    type: "bar",
+    data: { labels: labels, datasets: datasets.map(d => ({ label: d.label, data: d.data, backgroundColor: d.color, borderRadius: 3, maxBarThickness: 42 })) },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 12, padding: 13, color: CHART_LEGEND } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ": " + c.parsed.y + " days" } }
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: CHART_TICK, autoSkip: true, maxRotation: 45 } },
+        y: { stacked: true, beginAtZero: true, grid: { color: CHART_GRID }, ticks: { color: CHART_TICK, precision: 0, callback: v => v + "d" } }
+      }
+    }
+  }, hasData);
+}
+// Small feather-style icons for the metric cards
+function mi(paths) { return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths + "</svg>"; }
+const MI = {
+  file: mi('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'),
+  activity: mi('<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'),
+  trend: mi('<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>'),
+  check: mi('<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'),
+  dollar: mi('<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+  users: mi('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  alert: mi('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'),
+  clock: mi('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'),
+  user: mi('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
+  shield: mi('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'),
+  heart: mi('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'),
+  card: mi('<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>')
+};
 function renderCards(containerId, cards) {
   const el = document.getElementById(containerId);
   el.innerHTML = cards.map(c =>
-    '<div class="metric-card"><div class="metric-label">' + esc(c.label) + '</div><div class="metric-value' + (c.money ? " metric-money" : "") + '">' + (c.money ? audFmt.format(0) : "0") + "</div></div>"
+    '<div class="metric-card">' +
+    (c.icon ? '<div class="metric-ico ico-' + (c.tint || "steel") + '">' + c.icon + "</div>" : "") +
+    '<div class="metric-label">' + esc(c.label) + '</div><div class="metric-value' + (c.money ? " metric-money" : "") + '">' + (c.money ? audFmt.format(0) : "0") + "</div></div>"
   ).join("");
   const valEls = el.querySelectorAll(".metric-value");
   cards.forEach((c, i) => animateValue(valEls[i], c.value, c.money ? (v => audFmt.format(v)) : (v => String(Math.round(v)))));
@@ -1723,26 +1999,26 @@ function renderDashboard() {
   const benefitsPaid = sumBy(rangeClaims, c => c.TotalPaid);
   const openClaims = rangeClaims.filter(c => claimStageOf(c) === "inprogress").length;
   const appCards = [
-    { label: "Total Applications", value: subApps.length },
-    { label: "Active Applications", value: active.length },
-    { label: "Commission Pipeline", value: pipeline, money: true },
-    { label: "Expected (Completed)", value: expected, money: true },
-    { label: "Received (Total)", value: received, money: true },
-    { label: "Insurance Team Revenue", value: teamReceived, money: true },
-    { label: "Commission Outstanding", value: expected - received, money: true },
-    { label: "Avg Days to Complete", value: avgDays },
-    { label: "Average Client Age", value: avgAge }
+    { label: "Total Applications", value: subApps.length, icon: MI.file, tint: "steel" },
+    { label: "Active Applications", value: active.length, icon: MI.activity, tint: "amber" },
+    { label: "Commission Pipeline", value: pipeline, money: true, icon: MI.trend, tint: "steel" },
+    { label: "Expected (Completed)", value: expected, money: true, icon: MI.check, tint: "green" },
+    { label: "Received (Total)", value: received, money: true, icon: MI.dollar, tint: "green" },
+    { label: "Insurance Team Revenue", value: teamReceived, money: true, icon: MI.users, tint: "peach" },
+    { label: "Commission Outstanding", value: expected - received, money: true, icon: MI.alert, tint: "amber" },
+    { label: "Avg Days to Complete", value: avgDays, icon: MI.clock, tint: "navy" },
+    { label: "Average Client Age", value: avgAge, icon: MI.user, tint: "navy" }
   ];
   const claimCards = [
-    { label: "Total Claims", value: rangeClaims.length },
-    { label: "Open Claims", value: openClaims },
-    { label: "Total Benefits Paid", value: benefitsPaid, money: true },
-    { label: "Claim Fees Received", value: claimFees, money: true }
+    { label: "Total Claims", value: rangeClaims.length, icon: MI.shield, tint: "steel" },
+    { label: "Open Claims", value: openClaims, icon: MI.activity, tint: "amber" },
+    { label: "Total Benefits Paid", value: benefitsPaid, money: true, icon: MI.heart, tint: "peach" },
+    { label: "Claim Fees Received", value: claimFees, money: true, icon: MI.card, tint: "green" }
   ];
   renderCards("dash-app-cards", appCards);
   renderCards("dash-claim-cards", claimCards);
 
-  drawBar("chartInsurer", countByLookup(subApps, "Insurer", "insurers"), C_NAVY_SOFT, false, k => drillApplications({ insurer: k }));
+  drawBar("chartInsurer", countByLookup(subApps, "Insurer", "insurers"), CHART_NAVY_SOFT, false, k => drillApplications({ insurer: k }));
   drawBar("chartAdviser", countByLookup(subApps, "Adviser", "advisers"), C_STEEL, false, k => drillApplications({ adviser: k }));
 
   // Commission by month: expected keyed on COMPLETION month, received keyed on PAYMENT month
@@ -1768,14 +2044,28 @@ function renderDashboard() {
   });
   const insLabels = Object.keys(daysByIns).sort();
   drawBar("chartAvgDaysInsurer", { labels: insLabels, data: insLabels.map(l => Math.round(daysByIns[l].reduce((t, d) => t + d, 0) / daysByIns[l].length)), keys: insLabels }, C_PEACH, false);
+
+  // Time-in-stage (from status-log comments — fills out as statuses change post 17 Jun)
+  const STAGE_STATS_STATUSES = ["Submitted", "In Progress", "On Hold", "Completed"]; // Completed = waiting on payment
+  const stats = stageDurationStats(subApps);
+  const avgLabels = STAGE_STATS_STATUSES.filter(s => stats.overall[s]);
+  drawBar("chartAvgStage",
+    { labels: avgLabels, data: avgLabels.map(s => Math.round(stats.overall[s].tot / stats.overall[s].n)), keys: avgLabels },
+    avgLabels.map(s => chartColor(STATUS_COLORS[s] || C_STEEL)), false);
+  const stageInsurers = Object.keys(stats.byInsurer).sort();
+  drawStackedBar("chartStageInsurer", stageInsurers,
+    STAGE_STATS_STATUSES.map(s => ({
+      label: s, color: chartColor(STATUS_COLORS[s] || C_STEEL),
+      data: stageInsurers.map(i => { const e = stats.byInsurer[i][s]; return e ? Math.round(e.tot / e.n) : 0; })
+    })));
   drawDoughnut("chartClaims", countByOrdered(rangeClaims, c => c.ClaimStatus, CLAIM_STATUSES), CLAIM_STATUS_COLORS,
     { text: String(rangeClaims.length), sub: "Claims" }, k => drillClaims({ status: k }));
 
   // Claims by type — count + total benefits paid
   const typeCount = claimsByType(rangeClaims, s => s.length);
   const typeBenefits = claimsByType(rangeClaims, s => sumBy(s, x => x.TotalPaid));
-  drawBar("chartClaimType", typeCount, typeCount.labels.map(l => CLAIM_TYPE_COLORS[l] || C_STEEL), false, k => drillClaims({ type: k }));
-  drawBar("chartBenefitsType", typeBenefits, typeBenefits.labels.map(l => CLAIM_TYPE_COLORS[l] || C_STEEL), true, k => drillClaims({ type: k }));
+  drawBar("chartClaimType", typeCount, typeCount.labels.map(l => chartColor(CLAIM_TYPE_COLORS[l] || C_STEEL)), false, k => drillClaims({ type: k }));
+  drawBar("chartBenefitsType", typeBenefits, typeBenefits.labels.map(l => chartColor(CLAIM_TYPE_COLORS[l] || C_STEEL)), true, k => drillClaims({ type: k }));
 }
 
 /* ================= Applications ================= */
@@ -1919,7 +2209,7 @@ function renderApplicationsTable() {
   else if (stage.comm === "expected") $("#app-totals").textContent = "Expected " + audFmt.format(sumBy(rows, r => r.ExpectedCommission));
   else $("#app-totals").textContent = "";
   $("#applications-tbody").innerHTML = rows.length
-    ? rows.map(a => "<tr>" + cols.map(c => c.render(a)).join("") + appActionsCell(a) + "</tr>").join("")
+    ? rows.map(a => '<tr data-id="' + esc(a.id) + '">' + cols.map(c => c.render(a)).join("") + appActionsCell(a) + "</tr>").join("")
     : emptyRow(cols.length + 1, "No applications in this stage.", "Try another tab or adjust your filters.");
   updateSortIndicators($("#applications-thead"), eff);
 }
@@ -2055,6 +2345,133 @@ async function addComment() {
     btn.disabled = false; btn.textContent = orig;
   }
 }
+/* ---------- Detail drawer (apps + claims) ---------- */
+let drawerCtx = null;
+function openDrawer(entity, id) {
+  drawerCtx = { entity: entity, id: id };
+  renderDrawer();
+  if (!drawerCtx) return; // record vanished during render
+  const d = $("#drawer"), b = $("#drawer-backdrop");
+  if (!d.hidden) return;
+  d.hidden = false; b.hidden = false;
+  requestAnimationFrame(() => { d.classList.add("open"); b.classList.add("open"); });
+}
+function closeDrawer() {
+  if (!drawerCtx && $("#drawer").hidden) return;
+  drawerCtx = null;
+  const d = $("#drawer"), b = $("#drawer-backdrop");
+  d.classList.remove("open"); b.classList.remove("open");
+  setTimeout(() => { d.hidden = true; b.hidden = true; }, 240);
+  $("#drawer-cmt-input").value = "";
+}
+// One labelled value in the drawer grid. `val` is pre-escaped HTML; empty → em dash.
+function dfield(label, val, span2) {
+  return '<div class="drawer-field' + (span2 ? " span-2" : "") + '"><dt>' + esc(label) + "</dt><dd>" +
+    (val === null || val === undefined || val === "" ? '<span class="cmt-none">—</span>' : val) + "</dd></div>";
+}
+function drawerAppFields(rec) {
+  const adviser = lookupTitle(rec, "Adviser", "advisers");
+  const advTag = rec.AdviserLookupId ? (appIsTeam(rec) ? ' <span class="badge badge-teal">Team</span>' : ' <span class="badge badge-gray">External</span>') : "";
+  const loading = lookupTitle(rec, "LoadingDiscount", "loadingdiscounts");
+  const d = daysTaken(rec);
+  const external = rec.AdviserLookupId && !appIsTeam(rec);
+  return [
+    dfield("Client Type", esc(rec.ClientType || "")),
+    dfield("Client Age", rec.ClientAge !== null && rec.ClientAge !== undefined && rec.ClientAge !== "" ? esc(rec.ClientAge) : ""),
+    dfield("Submitted", fmtDate(rec.SubmissionDate)),
+    dfield("Completed", fmtDate(rec.CompletionDate)),
+    dfield("Days", d === null ? "" : d + (rec.CompletionDate ? "d" : "d open")),
+    dfield("Location", rec.Location ? '<span class="badge badge-slate">' + esc(rec.Location) + "</span>" : ""),
+    dfield("Insurer", esc(lookupTitle(rec, "Insurer", "insurers"))),
+    dfield("Loading Discount", loading ? '<span class="badge badge-teal">' + esc(loading) + "</span>" : ""),
+    dfield("Adviser", adviser ? esc(adviser) + advTag : ""),
+    dfield("Impl. Manager", esc(lookupTitle(rec, "ImplementationManager", "implmanagers"))),
+    dfield("Expected (Total)", fmtAUD(rec.ExpectedCommission)),
+    dfield("Received (Total)", fmtAUD(rec.ReceivedCommission)),
+    external ? dfield("Team Fee", fmtAUD(rec.TeamReceivedCommission)) : "",
+    dfield("Comm. Paid", fmtDate(rec.CommissionPaidDate)),
+    rec.CommissionNotes ? dfield("Commission Notes", esc(rec.CommissionNotes), true) : "",
+    rec.Notes ? dfield("Notes", esc(rec.Notes), true) : ""
+  ].join("");
+}
+function drawerClaimFields(rec) {
+  return [
+    dfield("Adviser", esc(lookupTitle(rec, "Adviser", "advisers"))),
+    dfield("Insurer", esc(lookupTitle(rec, "Insurer", "insurers"))),
+    dfield("Claim Type", esc(rec.ClaimType || "")),
+    dfield("Lodged", fmtDate(rec.LodgementDate)),
+    dfield("Decision Date", fmtDate(rec.DecisionDate)),
+    dfield("Benefit", fmtAUD(rec.BenefitAmount)),
+    dfield("Monthly Benefit", fmtAUD(rec.MonthlyBenefitAmount)),
+    dfield("Total Paid", fmtAUD(rec.TotalPaid)),
+    dfield("Mgmt Fee", fmtAUD(rec.ClaimManagementFee)),
+    dfield("Fee Paid", fmtDate(rec.ClaimFeePaidDate)),
+    rec.Notes ? dfield("Notes", esc(rec.Notes), true) : ""
+  ].join("");
+}
+function drawerTimelineHTML(entity, rec) {
+  const segs = stageSegments(entity, rec);
+  const colors = entity === "claims" ? CLAIM_STATUS_COLORS : STATUS_COLORS;
+  if (!segs.length) return '<div class="timeline-empty">No status history yet — it builds as the status changes.</div>';
+  return segs.map(s =>
+    '<div class="tl-item' + (s.current ? " tl-current" : "") + '">' +
+      '<span class="tl-dot" style="background:' + (colors[s.status] || "#6b7c8c") + '"></span>' +
+      '<div class="tl-info"><div class="tl-status">' + esc(s.status) + "</div>" +
+      '<div class="tl-dates">' + fmtDate(s.from) + " → " + (s.current ? "today" : fmtDate(s.to)) + "</div></div>" +
+      '<span class="tl-days">' + s.days + "d</span>" +
+    "</div>"
+  ).join("");
+}
+function renderDrawer() {
+  if (!drawerCtx) return;
+  const rec = recordFor(drawerCtx.entity, drawerCtx.id);
+  if (!rec) { closeDrawer(); return; }
+  const isClaim = drawerCtx.entity === "claims";
+  $("#drawer-title").textContent = rec.Title || "Untitled";
+  $("#drawer-sub").innerHTML =
+    '<span class="badge badge-blue">' + (isClaim ? "Claim" : "Application") + "</span>" +
+    (isClaim ? claimBadge(rec.ClaimStatus) : statusBadge(rec.Status)) +
+    (isClaim && rec.ClaimType ? '<span class="badge badge-slate">' + esc(rec.ClaimType) + "</span>" : "");
+  $("#drawer-fields").innerHTML = isClaim ? drawerClaimFields(rec) : drawerAppFields(rec);
+  $("#drawer-timeline").innerHTML = drawerTimelineHTML(drawerCtx.entity, rec);
+  renderDrawerThread();
+}
+function renderDrawerThread() {
+  if (!drawerCtx) return;
+  const list = commentsFor(drawerCtx.entity, drawerCtx.id).slice().reverse(); // newest first
+  const el = $("#drawer-thread");
+  if (!list.length) { el.innerHTML = '<div class="thread-empty">No comments yet. Add the first one below.</div>'; return; }
+  el.innerHTML = list.map(c => {
+    const sys = /^Status:/.test(c.Comment || "");
+    return '<div class="cmt' + (sys ? " cmt-sys" : "") + '"><div class="cmt-meta"><span class="cmt-author">' + esc(c._author || "Unknown") + (sys ? '<span class="cmt-tag">status</span>' : "") + "</span>" +
+      '<span class="cmt-meta-right"><span>' + esc(fmtDateTime(c._created)) + "</span>" +
+      '<button type="button" class="cmt-del" data-cmt-del="' + esc(c.id) + '" title="Delete comment" aria-label="Delete comment">' + ICON_TRASH + "</button></span></div>" +
+      '<div class="cmt-text">' + esc(c.Comment || "") + "</div></div>";
+  }).join("");
+}
+async function addDrawerComment() {
+  if (!drawerCtx) return;
+  const text = $("#drawer-cmt-input").value.trim();
+  if (!text) return;
+  const btn = $("#drawer-cmt-add");
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "Adding…";
+  try {
+    const fields = { Title: truncate(text, 80), Comment: text };
+    fields[commentFk(drawerCtx.entity)] = Number(drawerCtx.id);
+    await createItem(LISTS.comments, fields);
+    $("#drawer-cmt-input").value = "";
+    await loadList("comments");
+    renderActivePage(); // refreshes table cells + the drawer itself
+    showToast("Comment added.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
 /* ---------- Inline status change (apps + claims) ---------- */
 let statusCtx = null;
 function recordFor(entity, id) { return state[entity].find(x => x.id === String(id)); }
@@ -2375,7 +2792,7 @@ function renderClaimsTable() {
   if (state.claimStage === "completed") $("#claim-totals").textContent = "Paid " + audFmt.format(sumBy(rows, r => r.TotalPaid)) + " · Fees " + audFmt.format(sumBy(rows, r => r.ClaimManagementFee));
   else $("#claim-totals").textContent = "";
   $("#claims-tbody").innerHTML = rows.length
-    ? rows.map(c => "<tr>" + cols.map(col => col.render(c)).join("") + claimActionsCell(c) + "</tr>").join("")
+    ? rows.map(c => '<tr data-id="' + esc(c.id) + '">' + cols.map(col => col.render(c)).join("") + claimActionsCell(c) + "</tr>").join("")
     : emptyRow(cols.length + 1, "No claims in this stage.", "Try another tab or adjust your filters.");
   updateSortIndicators($("#claims-thead"), eff);
 }
@@ -2454,16 +2871,67 @@ function openManagedModal(key, item) {
   $("#mgf-active").checked = item ? isActive(item) : true;
   openModal("managed-modal");
 }
+// Settings the app understands. Missing ones render as editable placeholder rows —
+// saving a value creates the row in the SharePoint Settings list.
+const KNOWN_SETTINGS = [
+  { name: "ExternalAdviserFee", dflt: "750", desc: "Default “Received — Insurance Team” fee on external (non‑team) applications" },
+  { name: "StaleAmberDays", dflt: "45", desc: "Active tab: days open before the Days counter turns amber" },
+  { name: "StaleRedDays", dflt: "90", desc: "Active tab: days open before the Days counter turns red" },
+  { name: "InactiveDays", dflt: "14", desc: "Active tab: days without a comment, status change or edit before the ⚠ marker shows" }
+];
+function knownSetting(name) { return KNOWN_SETTINGS.find(k => k.name.toLowerCase() === String(name).toLowerCase()); }
 function renderSettingsTable() {
   const rows = sortByTitle(state.settings);
-  $("#settings-tbody").innerHTML = rows.length ? rows.map(s =>
+  let html = rows.map(s =>
     '<tr data-id="' + s.id + '">' +
       '<td class="td-title">' + esc(s.Title) + "</td>" +
       '<td class="val-cell">' + esc(s.Value === null || s.Value === undefined ? "" : s.Value) + "</td>" +
-      "<td>" + esc(s.Description || "") + "</td>" +
+      "<td>" + esc(s.Description || (knownSetting(s.Title) ? knownSetting(s.Title).desc : "")) + "</td>" +
       '<td class="td-actions"><button class="btn btn-ghost btn-sm" data-action="edit-value" data-id="' + s.id + '">Edit</button></td>' +
     "</tr>"
-  ).join("") : '<tr><td colspan="4" class="td-empty">No settings found.</td></tr>';
+  ).join("");
+  // Known settings with no SharePoint row yet — shown on their defaults, created on save
+  KNOWN_SETTINGS.filter(k => !state.settings.some(s => String(s.Title || "").toLowerCase() === k.name.toLowerCase())).forEach(k => {
+    html += '<tr data-name="' + esc(k.name) + '">' +
+      '<td class="td-title">' + esc(k.name) + "</td>" +
+      '<td class="val-cell"><span class="cmt-none">' + esc(k.dflt) + ' <span class="badge badge-gray">default</span></span></td>' +
+      "<td>" + esc(k.desc) + "</td>" +
+      '<td class="td-actions"><button class="btn btn-ghost btn-sm" data-action="edit-new" data-name="' + esc(k.name) + '">Edit</button></td>' +
+    "</tr>";
+  });
+  $("#settings-tbody").innerHTML = html || '<tr><td colspan="4" class="td-empty">No settings found.</td></tr>';
+}
+function startNewValueEdit(name) {
+  renderSettingsTable(); // reset any other row in edit mode
+  const row = $('#settings-tbody tr[data-name="' + name + '"]');
+  const k = knownSetting(name);
+  if (!row || !k) return;
+  row.querySelector(".val-cell").innerHTML =
+    '<input class="input input-sm" id="value-edit-input" value="' + esc(k.dflt) + '">';
+  row.querySelector(".td-actions").innerHTML =
+    '<button class="btn btn-sm" data-action="save-new" data-name="' + esc(name) + '">Save</button> ' +
+    '<button class="btn btn-ghost btn-sm" data-action="cancel-value">Cancel</button>';
+  $("#value-edit-input").focus();
+}
+async function saveNewValueEdit(name, btn) {
+  const input = $("#value-edit-input");
+  const k = knownSetting(name);
+  if (!input || !k) return;
+  const val = input.value;
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    try {
+      await createItem(LISTS.settings, { Title: k.name, Value: val, Description: k.desc });
+    } catch (e) {
+      await createItem(LISTS.settings, { Title: k.name, Value: val }); // list without a Description column
+    }
+    await loadList("settings");
+    showToast("Setting created.");
+  } catch (err) {
+    console.error(err);
+    showToast(friendly(err), "error");
+  }
+  renderSettingsTable();
 }
 function startValueEdit(id) {
   renderSettingsTable(); // reset any other row in edit mode
@@ -2736,6 +3204,21 @@ function setSidebarHidden(hidden) {
 $("#sidebar-toggle").addEventListener("click", () => setSidebarHidden(true));
 $("#sidebar-show").addEventListener("click", () => setSidebarHidden(false));
 if (readLS("insTracker.sidebarHidden")) $("#app").classList.add("sidebar-hidden");
+// Dark mode — persisted, charts re-themed on switch
+const ICON_MOON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+const ICON_SUN = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+function applyTheme(t) {
+  if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+  else document.documentElement.removeAttribute("data-theme");
+  writeLS("insTracker.theme", t);
+  applyChartTheme();
+  $("#theme-toggle").innerHTML = (t === "dark" ? ICON_SUN + " Light mode" : ICON_MOON + " Dark mode");
+}
+$("#theme-toggle").addEventListener("click", () => {
+  applyTheme(isDarkTheme() ? "light" : "dark");
+  renderActivePage(); // redraw charts + surfaces with the new palette
+});
+applyTheme(readLS("insTracker.theme") === "dark" ? "dark" : "light");
 
 function showSkeletons() {
   if (currentPage === "dashboard") { $("#dash-app-cards").innerHTML = skeletonCards(6); $("#dash-claim-cards").innerHTML = skeletonCards(4); }
@@ -2766,7 +3249,23 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     const open = Array.from(document.querySelectorAll(".modal-overlay")).find(m => !m.hidden);
     if (open) cancelModal(open.id);
+    else if (drawerCtx) closeDrawer();
   }
+});
+/* --- Drawer events --- */
+$("#drawer-close").addEventListener("click", closeDrawer);
+$("#drawer-backdrop").addEventListener("click", closeDrawer);
+$("#drawer-edit").addEventListener("click", () => {
+  if (!drawerCtx) return;
+  const rec = recordFor(drawerCtx.entity, drawerCtx.id);
+  if (!rec) return;
+  if (drawerCtx.entity === "claims") openClaimModal(rec); else openAppModal(rec);
+});
+$("#drawer-cmt-add").addEventListener("click", addDrawerComment);
+$("#drawer-cmt-input").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addDrawerComment(); } });
+$("#drawer-thread").addEventListener("click", e => {
+  const btn = e.target.closest("[data-cmt-del]");
+  if (btn) deleteComment(btn.getAttribute("data-cmt-del"));
 });
 $("#confirm-cancel").addEventListener("click", () => cancelModal("confirm-modal"));
 $("#confirm-ok").addEventListener("click", () => {
@@ -2834,11 +3333,16 @@ $("#app-stage-tabs").addEventListener("click", e => {
 });
 $("#applications-tbody").addEventListener("click", e => {
   const btn = e.target.closest("button[data-action]");
-  if (!btn) return;
-  const item = state.applications.find(x => x.id === btn.dataset.id);
-  if (!item) return;
-  if (btn.dataset.action === "edit") openAppModal(item);
-  else if (btn.dataset.action === "comments") openCommentsModal("applications", item.id);
+  if (btn) {
+    const item = state.applications.find(x => x.id === btn.dataset.id);
+    if (!item) return;
+    if (btn.dataset.action === "edit") openAppModal(item);
+    else if (btn.dataset.action === "comments") openCommentsModal("applications", item.id);
+    return;
+  }
+  if (e.target.closest("select,button,a,input,textarea")) return; // inline controls keep their own behaviour
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) openDrawer("applications", tr.dataset.id);
 });
 // Delete now lives inside the edit modal
 $("#af-delete").addEventListener("click", async () => {
@@ -2906,11 +3410,16 @@ $("#claim-stage-tabs").addEventListener("click", e => {
 });
 $("#claims-tbody").addEventListener("click", e => {
   const btn = e.target.closest("button[data-action]");
-  if (!btn) return;
-  const item = state.claims.find(x => x.id === btn.dataset.id);
-  if (!item) return;
-  if (btn.dataset.action === "edit") openClaimModal(item);
-  else if (btn.dataset.action === "comments") openCommentsModal("claims", item.id);
+  if (btn) {
+    const item = state.claims.find(x => x.id === btn.dataset.id);
+    if (!item) return;
+    if (btn.dataset.action === "edit") openClaimModal(item);
+    else if (btn.dataset.action === "comments") openCommentsModal("claims", item.id);
+    return;
+  }
+  if (e.target.closest("select,button,a,input,textarea")) return; // inline controls keep their own behaviour
+  const tr = e.target.closest("tr[data-id]");
+  if (tr) openDrawer("claims", tr.dataset.id);
 });
 $("#cf-delete").addEventListener("click", async () => {
   const id = $("#cf-id").value;
@@ -2948,13 +3457,15 @@ $("#settings-tbody").addEventListener("click", async e => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
   if (btn.dataset.action === "edit-value") startValueEdit(btn.dataset.id);
+  else if (btn.dataset.action === "edit-new") startNewValueEdit(btn.dataset.name);
   else if (btn.dataset.action === "cancel-value") renderSettingsTable();
   else if (btn.dataset.action === "save-value") await saveValueEdit(btn.dataset.id, btn);
+  else if (btn.dataset.action === "save-new") await saveNewValueEdit(btn.dataset.name, btn);
 });
 $("#settings-tbody").addEventListener("keydown", e => {
   if (e.target.id === "value-edit-input" && e.key === "Enter") {
     e.preventDefault();
-    const btn = $('#settings-tbody button[data-action="save-value"]');
+    const btn = $('#settings-tbody button[data-action="save-value"], #settings-tbody button[data-action="save-new"]');
     if (btn) btn.click();
   }
 });
