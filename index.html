@@ -462,6 +462,10 @@ tbody tr[data-id]{cursor:pointer}
 /* Inputs */
 :root[data-theme="dark"] .input,:root[data-theme="dark"] .dash-range select,:root[data-theme="dark"] .dash-range input[type=date]{background:#0f1d29;border-color:#2b4258;color:var(--text)}
 :root[data-theme="dark"] .input::placeholder{color:#5f788c}
+/* Native option popups (filters + inline status/location pills) — force a readable dark list */
+:root[data-theme="dark"] select option,:root[data-theme="dark"] .status-select option{background:#12212e;color:#d9e6f0}
+/* The inline status/location arrow glyph needs to be light on dark */
+:root[data-theme="dark"] .status-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a9c0d2' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")}
 /* Tables */
 :root[data-theme="dark"] tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
 :root[data-theme="dark"] tbody tr:hover{background:rgba(127,184,212,.08)}
@@ -2245,7 +2249,7 @@ function openAppModal(item) {
   fillStaticSelect($("#af-clienttype"), CLIENT_TYPES, item ? item.ClientType : "", "Select…");
   $("#af-age").value = (item && item.ClientAge !== null && item.ClientAge !== undefined) ? item.ClientAge : "";
   fillStaticSelect($("#af-status"), APP_STATUSES, item ? item.Status : "Submitted", "Select…");
-  $("#af-subdate").value = dateInputVal(item && item.SubmissionDate);
+  $("#af-subdate").value = dateInputVal(item ? item.SubmissionDate : todayStr()); // default new applications to today
   $("#af-compdate").value = dateInputVal(item && item.CompletionDate);
   fillLookupSelect($("#af-insurer"), state.insurers, item ? item.InsurerLookupId : "", "Select insurer…");
   fillLookupSelect($("#af-adviser"), state.advisers, item ? item.AdviserLookupId : "", "Select adviser…");
