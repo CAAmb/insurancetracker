@@ -1520,6 +1520,29 @@ function updateItem(listName, id, fields) {
 function deleteItem(listName, id) {
   return graphRequest(GRAPH_LISTS_BASE + segFor(listName) + "/items/" + id, { method: "DELETE" });
 }
+// Resilient write. Some lists' "Active" column was built as a Choice ("Yes"/"No") instead of a
+// Yes/No (boolean) type — writing a boolean into a Choice column makes SharePoint throw a 500
+// "General exception while processing". On a 500 we retry Active as the string "Yes"/"No", then
+// omit it entirely (new rows default to active). A type-coercion 500 never inserts a row, so a
+// retried create won't duplicate. Non-500 errors (400/403/404) are surfaced immediately.
+async function writeItem(kind, listName, id, fields) {
+  const variants = [fields];
+  if (typeof fields.Active === "boolean") {
+    variants.push(Object.assign({}, fields, { Active: fields.Active ? "Yes" : "No" }));
+    const noActive = Object.assign({}, fields); delete noActive.Active;
+    variants.push(noActive);
+  }
+  let lastErr;
+  for (let i = 0; i < variants.length; i++) {
+    try {
+      return kind === "create" ? await createItem(listName, stripEmpty(variants[i])) : await updateItem(listName, id, variants[i]);
+    } catch (e) {
+      lastErr = e;
+      if (!/^5\d\d\b/.test(String(e && e.message))) break; // only the Active-coercion 500 is worth retrying
+    }
+  }
+  throw lastErr;
+}
 
 /* ================= Data layer ================= */
 // _created / _author / _modified come from the list item itself (SharePoint built-ins), not fields
@@ -1683,8 +1706,7 @@ async function saveRecord(key, id, fields, modalId, form) {
   const orig = btn.textContent;
   btn.disabled = true; btn.textContent = "Saving…";
   try {
-    if (id) await updateItem(LISTS[key], id, fields);
-    else await createItem(LISTS[key], stripEmpty(fields));
+    await writeItem(id ? "update" : "create", LISTS[key], id, fields);
     closeModal(modalId);
     showToast("Saved.");
     await loadList(key);
@@ -3010,7 +3032,7 @@ function openInsurerModal(item) {
 async function toggleActive(key, item, btn) {
   btn.disabled = true;
   try {
-    await updateItem(LISTS[key], item.id, { Active: !isActive(item) });
+    await writeItem("update", LISTS[key], item.id, { Active: !isActive(item) });
     await loadList(key);
     showToast("Updated.");
   } catch (err) {
