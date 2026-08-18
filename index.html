@@ -672,7 +672,7 @@ tbody tr[data-id]{cursor:pointer}
         <label class="t-field"><span>Financial Year</span><select id="app-fy" class="input"></select></label>
         <label class="t-field"><span>Adviser</span><select id="app-filter-adviser" class="input"></select></label>
         <label class="t-field"><span>Insurer</span><select id="app-filter-insurer" class="input"></select></label>
-        <label class="t-field"><span>Month (submitted)</span><input id="app-filter-month" type="month" class="input"></label>
+        <label class="t-field"><span id="app-month-label">Month (submitted)</span><input id="app-filter-month" type="month" class="input"></label>
         <button id="app-clear-filters" class="btn btn-ghost btn-sm">Clear</button>
         <button id="app-export-csv" class="btn btn-ghost btn-sm">Export CSV</button>
         <div class="toolbar-meta">
@@ -1097,6 +1097,12 @@ function appStageOf(a) {
   return hit ? hit.key : "active";
 }
 function stageDef(key) { return APP_STAGES.find(s => s.key === key) || APP_STAGES[0]; }
+// The date that matters for a row given its stage — drives the stage-aware Month filter
+function stageDateFor(a) {
+  const st = appStageOf(a);
+  return st === "paid" ? a.CommissionPaidDate : st === "completed" ? a.CompletionDate : a.SubmissionDate;
+}
+const STAGE_MONTH_LABEL = { active: "submitted", completed: "completed", paid: "paid", dnc: "submitted" };
 const CLAIM_STATUSES = ["Lodged", "Assessing", "Approved", "Paid", "Withdrawn", "Declined", "Closed"];
 const CLAIM_TYPES = ["Life", "TPD", "Trauma", "Income Protection", "Business", "Other"];
 // Claim lifecycle stages, derived from ClaimStatus
@@ -2194,7 +2200,7 @@ function baseFilteredApplications() {
   return state.applications.filter(a => {
     if (adviser && String(a.AdviserLookupId === undefined || a.AdviserLookupId === null ? "" : a.AdviserLookupId) !== adviser) return false;
     if (insurer && String(a.InsurerLookupId === undefined || a.InsurerLookupId === null ? "" : a.InsurerLookupId) !== insurer) return false;
-    if (month && ymd(a.SubmissionDate).slice(0, 7) !== month) return false;
+    if (month && ymd(stageDateFor(a)).slice(0, 7) !== month) return false; // stage-aware: submitted/completed/paid month
     if (!inRange(a.SubmissionDate, bounds)) return false;
     if (q) {
       const hay = [a.Title, lookupTitle(a, "Insurer", "insurers"), lookupTitle(a, "Adviser", "advisers"), lookupTitle(a, "ImplementationManager", "implmanagers"), lookupTitle(a, "LoadingDiscount", "loadingdiscounts"), a.Location, a.Status, a.ClientType].join(" ").toLowerCase();
@@ -2221,6 +2227,7 @@ function renderStageTabs() {
 }
 function renderApplicationsTable() {
   renderStageTabs();
+  $("#app-month-label").textContent = "Month (" + (STAGE_MONTH_LABEL[state.appStage] || "submitted") + ")";
   const cols = appColumns(state.appStage);
   const cur = state.sort.applications;
   const dateKey = (state.appStage === "completed" || state.appStage === "paid") ? "CompletionDate" : "SubmissionDate";
